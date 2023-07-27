@@ -1,0 +1,48 @@
+﻿@page
+@model BulkyRazorPages.Pages.Categories.IndexModel
+
+<partial name="_Notification"/>
+<div class="container">
+    <div class="row pt-4 pb-3">
+        <div class="col-6">
+            <h2>Category List</h2>
+        </div>
+        <div class="col-6 text-end">
+            <a asp-page="/Categories/Create" class="btn btn-outline-primary">
+                <i class="bi bi-plus-circle"></i> Create New
+            </a>
+        </div>
+    </div>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Category Name</th>
+                <th>Display Name</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Model.categories.OrderBy(c=>c.DisplayOrder))
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>@category.DisplayOrder</td>
+                    <td class="text-center">
+                        <div class="btn-group w-100" role="group">
+                            <a asp-page="/Categories/Edit"
+                               asp-route-id="@category.Id"
+                               class="btn btn-outline-dark mx-2">
+                                   <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <a asp-page="/Categories/Delete"
+                               asp-route-id="@category.Id"
+                               class="btn btn-outline-danger mx-2">
+                                   <i class="bi bi-trash"></i> Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

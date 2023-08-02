@@ -7,10 +7,10 @@ namespace BulkyRazorPages.Pages.Categories
 {
     public class IndexModel : PageModel
     {
-        private readonly AppDbContext _context;
+        private readonly RazorPagesDbContext _context;
         public List<Category> categories;
 
-        public IndexModel(AppDbContext context)
+        public IndexModel(RazorPagesDbContext context)
         {
             _context = context;
         }

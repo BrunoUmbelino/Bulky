@@ -7,11 +7,11 @@ namespace BulkyRazorPages.Pages.Categories
 {
     public class CreateModel : PageModel
     {
-        private readonly AppDbContext _context;
+        private readonly RazorPagesDbContext _context;
         
         public Category category;
 
-        public CreateModel(AppDbContext context)
+        public CreateModel(RazorPagesDbContext context)
         {
             _context = context;
         }

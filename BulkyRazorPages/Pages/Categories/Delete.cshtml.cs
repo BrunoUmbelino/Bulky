@@ -7,10 +7,10 @@ namespace BulkyRazorPages.Pages.Categories
 {
     public class DeleteModel : PageModel
     {
-        private readonly AppDbContext _context;
+        private readonly RazorPagesDbContext _context;
         public Category category { get; set; }
 
-        public DeleteModel(AppDbContext context)
+        public DeleteModel(RazorPagesDbContext context)
         {
             _context = context;
         }

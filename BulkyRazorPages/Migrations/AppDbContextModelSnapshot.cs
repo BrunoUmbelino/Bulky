@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BulkyRazorPages.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(RazorPagesDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

@@ -7,11 +7,11 @@ namespace BulkyRazorPages.Pages.Categories
 {
     public class EditModel : PageModel
     {
-        private readonly AppDbContext _context;
+        private readonly RazorPagesDbContext _context;
 
         public Category category { get; set; }
 
-        public EditModel(AppDbContext context)
+        public EditModel(RazorPagesDbContext context)
         {
             _context = context;
         }

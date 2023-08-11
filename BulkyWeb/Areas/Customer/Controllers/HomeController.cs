@@ -24,6 +24,15 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return View(products);
         }
 
+        public IActionResult Details(int id)
+        {
+            if (id == 0) return NotFound();
+            var product = _unitOfWork.ProductRepository.Get(p=>p.Id==id, includeProperties: "Category");
+            if (product == null) return NotFound();
+
+            return View(product);
+        }
+
         public IActionResult Privacy()
         {
             return View();

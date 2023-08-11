@@ -1,11 +1,10 @@
 ﻿@model List<Category>
 
-
-<div class="card bg-dark shadow border-0 mt-4">
-    <div class="card-header bg-info ml-0 py-3 rounded-top-2">
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-primary text-light ml-0 py-3 rounded-top-2">
         <div class="row">
             <div class="col-12 text-center">
-                <h2>List Category</h2>
+                <h2>Category List</h2>
             </div>
         </div>
     </div>
@@ -13,13 +12,13 @@
         <div class="container">
             <div class="row pt-4 pb-3">
                 <div class="col-12 text-end">
-                    <a asp-controller="Category" asp-action="Create" class="btn btn-outline-success">
+                    <a class="btn btn-outline-success" asp-controller="Category" asp-action="Create">
                         <i class="bi bi-plus-circle"></i> New Category
                     </a>
                 </div>
             </div>
         </div>
-        <table class="table table-borderless table-striped table-dark">
+        <table class="table table-borderless table-striped table-light">
             <thead>
                 <tr>
                     <th>Category Name</th>
@@ -34,17 +33,17 @@
                         <td>@category.Name</td>
                         <td>@category.DisplayOrder</td>
                         <td>
-                            <div class="w-75 btn-group" role="group">
+                            <div class="btn-group" role="group">
                                 <a asp-controller="Category"
                                    asp-action="Edit"
                                    asp-route-id="@category.Id"
-                                   class="btn btn-dark mx-2">
+                                   class="btn btn-outline-warning mx-2">
                                     <i class="bi bi-pencil-square"></i> Edit
                                 </a>
                                 <a asp-controller="Category"
                                    asp-action="Delete"
                                    asp-route-id="@category.Id"
-                                   class="btn btn-dark mx-2">
+                                   class="btn btn-outline-danger mx-2">
                                     <i class="bi bi-trash"></i> Delete
                                 </a>
                             </div>
@@ -53,6 +52,5 @@
                 }
             </tbody>
         </table>
-
     </div>
 </div>

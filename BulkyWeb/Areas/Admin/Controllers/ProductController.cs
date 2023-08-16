@@ -134,7 +134,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         #region API CALLS
 
         [HttpGet]
-        [Microsoft.AspNetCore.Mvc.Route("[area]/API/[controller]/GetAll")]
+        [Route("[area]/API/[controller]/GetAll")]
         public IActionResult GetAll()
         {
             var products = _unitOfWork.ProductRepository
@@ -143,7 +143,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         }
 
 
-        [Microsoft.AspNetCore.Mvc.Route("[area]/API/[controller]/Delete")]
+        [Route("[area]/API/[controller]/Delete")]
         public IActionResult DeleteApi(int? id)
         {
             var product = _unitOfWork.ProductRepository.Get(p => p.Id == id);

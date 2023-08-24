@@ -50,7 +50,7 @@ namespace Bulky.DataAccess.Repository
                     query = query.Include(includeProp);
                 }
             }
-            return query.ToList();
+            return query.AsNoTracking().ToList();
         }
 
         public void Delete(T entity)

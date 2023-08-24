@@ -16,7 +16,7 @@ function loadDataTable() {
                 "width": "10%",
                 "render": function (data) {
                     return `
-                    <div class="w-75 btn-group" role="goup">
+                    <div class="w-75 btn-group" role="group">
                         <a class="btn btn-outline-warning mx-1"
                             href="/admin/product/upsert/?id=${data}"
                             <i class="bi bi-pencil-square"></i> Edit

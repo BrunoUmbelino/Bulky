@@ -6,7 +6,7 @@ namespace Bulky.DataAccess.Repository
 {
     public class ProductRepository : Repository<Product>, IProductRepository
     {
-        private AppDbContext _context;
+        private readonly AppDbContext _context;
         public ProductRepository(AppDbContext context) : base(context)
         {
             _context = context;

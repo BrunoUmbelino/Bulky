@@ -33,7 +33,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult Upsert(int? id)
         {
-            ProductVM productVM = new()
+            var productVM = new ProductVM()
             {
                 CategoryList = PopulateCategoryList()
             };
@@ -83,28 +83,6 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             _unitOfWork.Save();
             TempData["successMessage"] = $"Product {productVM.Product.Title} {actionMessage} successfuly";
-
-            return RedirectToAction("Index");
-        }
-
-        public IActionResult Edit(int? id)
-        {
-            if (id == 0 || id == null) return NotFound();
-
-            var product = _unitOfWork.ProductRepository.Get(p => p.Id == id);
-            if (product == null) return NotFound();
-
-            return View(product);
-        }
-
-        [HttpPost]
-        public IActionResult Edit(Product product)
-        {
-            if (!ModelState.IsValid) return View();
-
-            _unitOfWork.ProductRepository.Update(product);
-            _unitOfWork.Save();
-            TempData["successMessage"] = $"Product {product.Title} updated successfuly";
 
             return RedirectToAction("Index");
         }

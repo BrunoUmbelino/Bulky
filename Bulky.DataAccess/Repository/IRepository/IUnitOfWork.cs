@@ -4,6 +4,7 @@
     {
         ICateroryRepository CateroryRepository { get; }
         IProductRepository ProductRepository { get; }
+        ICompanyRepository CompanyRepository { get; }
         void Save();
     }
 }

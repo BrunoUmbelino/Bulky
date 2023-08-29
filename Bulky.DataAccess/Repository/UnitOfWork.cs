@@ -6,16 +6,18 @@ namespace Bulky.DataAccess.Repository
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
-        public ICateroryRepository CateroryRepository { get; private set; }
+        public ICategoryRepository CategoryRepository { get; private set; }
         public IProductRepository ProductRepository { get; private set; }
         public ICompanyRepository CompanyRepository { get; private set; }
+        public IShoppingCartRepository ShoppingCartRepository { get; private set; }
 
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
-            CateroryRepository = new CategoryRepository(_context);
+            CategoryRepository = new CategoryRepository(_context);
             ProductRepository = new ProductRepository(_context);
             CompanyRepository = new CompanyRepository(_context);
+            ShoppingCartRepository = new ShoppingCartRepository(_context);
         }
 
         public void Save()

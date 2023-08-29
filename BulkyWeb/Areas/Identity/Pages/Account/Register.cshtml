@@ -41,6 +41,11 @@
                             <option selected disabled class="text-muted">- Select Role -</option>
                         </select>
                     </div>
+                    <div class="form-floating mb-3">
+                        <select asp-for="Input.CompanyId" asp-items="@Model.Input.CompanyList" class="form-select" style="display: none" aria-required="true">
+                            <option selected disabled class="text-muted">- Select Company -</option>
+                        </select>
+                    </div>
                     <div class="form-floating mb-3 col-12">
                         <input asp-for="Input.PhoneNumber" class="form-control" aria-required="true" placeholder="" />
                         <label asp-for="Input.PhoneNumber" class="ms-2 text-muted">Phone Number</label>
@@ -107,4 +112,19 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            verificarSelectedCompany();
+            $("#Input_Role").change(()=>verificarSelectedCompany());
+
+            function verificarSelectedCompany() {
+                var selectedRole = $("#Input_Role Option:Selected").text();
+                if (selectedRole == "Company") {
+                    $("#Input_CompanyId").show();
+                } else {
+                    $("#Input_CompanyId").hide();
+                }
+            }
+        });
+    </script>
 }

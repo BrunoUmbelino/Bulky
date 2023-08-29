@@ -148,7 +148,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         IEnumerable<SelectListItem> PopulateCategoryList()
         {
-            return _unitOfWork.CateroryRepository
+            return _unitOfWork.CategoryRepository
                 .GetAll()
                 .Select(c => new SelectListItem()
                 {

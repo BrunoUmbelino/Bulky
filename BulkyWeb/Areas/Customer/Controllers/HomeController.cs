@@ -49,28 +49,24 @@ namespace BulkyWeb.Areas.Customer.Controllers
             {
                 if (newShoppingCart.Count <= 0 || newShoppingCart.ProductId == 0) return ValidationProblem();
 
-                var claimsIdentity = (ClaimsIdentity)User.Identity;
-                var userId = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier).Value;
-                newShoppingCart.ApplicationUserId = userId;
+                string userIdFromIdentity = (User.Identity as ClaimsIdentity).FindFirst(ClaimTypes.NameIdentifier).Value;
+                newShoppingCart.ApplicationUserId = userIdFromIdentity;
 
                 ShoppingCartItem shoppingCartFromDb = _unitOfWork.ShoppingCartRepository
-                    .Get(sc => sc.ApplicationUserId == userId && sc.ProductId == newShoppingCart.ProductId);
+                    .Get(sc => sc.ApplicationUserId == userIdFromIdentity && sc.ProductId == newShoppingCart.ProductId);
 
-                string messageAction = "";
                 if (shoppingCartFromDb == null)
                 {
-                    messageAction = "created";
                     _unitOfWork.ShoppingCartRepository.Add(newShoppingCart);
                 }
                 else
                 {
-                    messageAction = "updated";
                     shoppingCartFromDb.Count += newShoppingCart.Count;
                     _unitOfWork.ShoppingCartRepository.Update(shoppingCartFromDb);
                 }
                 _unitOfWork.Save();
 
-                TempData["successMessage"] = $"Cart {messageAction} sucessfully";
+                TempData["successMessage"] = $"Cart updated sucessfully";
                 return RedirectToAction(nameof(Index));
             } 
             catch (Exception ex)

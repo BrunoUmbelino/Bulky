@@ -15,7 +15,7 @@ namespace Bulky.DataAccess.Repository
         {
             _genericContext = context;
             _dbSet = _genericContext.Set<T>();
-            
+
         }
 
         public void Add(T entity)
@@ -25,32 +25,36 @@ namespace Bulky.DataAccess.Repository
 
         public T Get(Expression<Func<T, bool>> filter, string? includeProperties = null)
         {
-            IQueryable<T> query = _dbSet;
+            IQueryable<T> query = _dbSet.AsNoTracking();
             query = query.Where(filter);
+
             if (!includeProperties.IsNullOrEmpty())
             {
-                foreach (var includeProp in includeProperties
-                    .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var prop in includeProperties.Split(
+                    new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    query = query.Include(includeProp);
+                    query = query.Include(prop);
                 }
             }
 
             return query.FirstOrDefault();
         }
 
-        public IEnumerable<T> GetAll(string? includeProperties = null)
+        public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter, string? includeProperties = null)
         {
-            IQueryable<T> query = _dbSet;
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            if (filter != null)
+                query = query.Where(filter);
+
             if (!includeProperties.IsNullOrEmpty())
-            {
-                foreach(var includeProp in includeProperties
-                    .Split(new char[] { ','}, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var includeProp in includeProperties.Split(
+                   new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     query = query.Include(includeProp);
                 }
-            }
-            return query.AsNoTracking().ToList();
+
+            return query.ToList();
         }
 
         public void Delete(T entity)

@@ -1,15 +1,10 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bulky.DataAccess.Repository
 {
-    public class ShoppingCartRepository : Repository<ShoppingCart>, IShoppingCartRepository
+    public class ShoppingCartRepository : Repository<ShoppingCartItem>, IShoppingCartRepository
     {
         private AppDbContext _context;
         
@@ -18,9 +13,9 @@ namespace Bulky.DataAccess.Repository
             _context = context;
         }
 
-        public void Update(Category category)
+        public void Update(ShoppingCartItem shoppingCart)
         {
-            _context.Categories.Update(category);
+            _context.ShoppingCarts.Update(shoppingCart);
         }
     }
 }

@@ -8,16 +8,14 @@ namespace Bulky.DataAccess.Data
 {
     public class AppDbContext : IdentityDbContext<IdentityUser>
     {
-        public AppDbContext(DbContextOptions options) : base(options)
-        {
-
-        }
+        public AppDbContext(DbContextOptions options) : base(options) { }
 
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
-        public DbSet<ApplicationUser> AppUsers { get; set; }
+        public DbSet<ApplicationUser> ApplicationUsers { get; set; }
         public DbSet<Company> Companies { get; set; }
-        public DbSet<ShoppingCart> ShoppingCarts { get; set; }
+        public DbSet<ShoppingCartItem> ShoppingCarts { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,7 +25,7 @@ namespace Bulky.DataAccess.Data
                 new Category() { Id = 1, DisplayOrder = 1, Name = "Ficção Científica" },
                 new Category() { Id = 2, DisplayOrder = 2, Name = "Terror" },
                 new Category() { Id = 3, DisplayOrder = 3, Name = "Ação e aventura" }
-                );
+            );
 
             modelBuilder.Entity<Product>().HasData(
                 new Product
@@ -108,7 +106,7 @@ namespace Bulky.DataAccess.Data
                     PriceAbove100 = 20,
                     CategoryId = 3
                 }
-                );
+            );
         }
     }
 }

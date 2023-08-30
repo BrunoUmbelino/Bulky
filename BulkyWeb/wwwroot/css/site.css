@@ -29,3 +29,7 @@ body {
     margin: auto 0.25rem;
     box-shadow: 0 -2px;
 }
+
+.toast {
+    opacity: 1 !important;
+}

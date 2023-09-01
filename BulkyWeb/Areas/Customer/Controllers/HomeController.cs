@@ -43,25 +43,25 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         [HttpPost]
         [Authorize]
-        public IActionResult Details(ShoppingCartItem newShoppingCart)
+        public IActionResult Details(ShoppingCartItem shoppingCart)
         {
             try
             {
-                if (newShoppingCart.Count <= 0 || newShoppingCart.ProductId == 0) return ValidationProblem();
+                if (shoppingCart.Count <= 0 || shoppingCart.ProductId == 0) return ValidationProblem();
 
-                string userIdFromIdentity = (User.Identity as ClaimsIdentity).FindFirst(ClaimTypes.NameIdentifier).Value;
-                newShoppingCart.ApplicationUserId = userIdFromIdentity;
+                string? userIdFromIdentity = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                shoppingCart.ApplicationUserId = userIdFromIdentity;
 
                 ShoppingCartItem shoppingCartFromDb = _unitOfWork.ShoppingCartRepository
-                    .Get(sc => sc.ApplicationUserId == userIdFromIdentity && sc.ProductId == newShoppingCart.ProductId);
+                    .Get(sc => sc.ApplicationUserId == userIdFromIdentity && sc.ProductId == shoppingCart.ProductId);
 
                 if (shoppingCartFromDb == null)
                 {
-                    _unitOfWork.ShoppingCartRepository.Add(newShoppingCart);
+                    _unitOfWork.ShoppingCartRepository.Add(shoppingCart);
                 }
                 else
                 {
-                    shoppingCartFromDb.Count += newShoppingCart.Count;
+                    shoppingCartFromDb.Count += shoppingCart.Count;
                     _unitOfWork.ShoppingCartRepository.Update(shoppingCartFromDb);
                 }
                 _unitOfWork.Save();
@@ -71,8 +71,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
             } 
             catch (Exception ex)
             {
-                _logger.LogError("", ex);
-                 return RedirectToAction(nameof(Index));
+                _logger.LogError(0, ex, "Erro no processo de UPSERT do item carrinho de compras.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
             }
         }
 

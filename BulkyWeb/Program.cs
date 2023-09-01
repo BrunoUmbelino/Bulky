@@ -1,4 +1,3 @@
-
 using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository;
 using Bulky.DataAccess.Repository.IRepository;
@@ -6,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Bulky.Utility;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,10 +24,18 @@ builder.Services.ConfigureApplicationCookie(options =>
         options.LogoutPath = "/Identity/Account/Logout";
         options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     });
-builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IEmailSender, FakeEmailSender>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information) // Ajuste o nível mínimo de log para as mensagens do Microsoft.Extensions.Logging
+    .WriteTo.Console() // Adicione o provedor de log para a saída do console (opcional)
+    .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day) // Adicione o provedor de log para salvar em um arquivo chamado "app.log"
+    .CreateLogger();
+
+builder.Logging.AddSerilog(); // Adicione o logger Serilog à configuração do aplicativo
 
 var app = builder.Build();
 

@@ -1,6 +1,7 @@
 ﻿using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
+using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -11,6 +12,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
     public class CartController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
+
+        [BindProperty]
+        public ShoppingCartVM ShoppingCartVM { get; set; } = null!;
 
         public CartController(IUnitOfWork unitOfWork)
         {
@@ -92,6 +96,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
         {
             string? userId = (User.Identity as ClaimsIdentity)?
                 .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return NotFound();
 
             var userFromDb = _unitOfWork.ApplicationUserRepository.Get(u => u.Id == userId);
             if (userFromDb == null) return NotFound();
@@ -111,14 +116,78 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     Name = userFromDb.Name ?? string.Empty,
                 }
             };
+            shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
 
+            return View(shopCartVM);
+        }
+
+        [HttpPost]
+        [ActionName("Summary")]
+        public IActionResult SummaryPost(ShoppingCartVM shopCartVM)
+        {
+            string? userId = (User.Identity as ClaimsIdentity)?
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return NotFound();
+
+            shopCartVM.ShoppingCartItems = _unitOfWork.ShoppingCartRepository
+                .GetAll(filter: sc => sc.ApplicationUserId == userId, includeProperties: "Product");
+            shopCartVM.OrderHeader.OrderDate = DateTime.Now;
+            shopCartVM.OrderHeader.ApplicationUserId = userId;
+            shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+
+            var applicationUser = _unitOfWork.ApplicationUserRepository.Get(u => u.Id == userId);
+            if (applicationUser is null) return NotFound();
+
+            bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() == 0;
+            bool isCustomerAccout = !isCompanyAccout;
+            if (isCustomerAccout)
+            {
+                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Pending;
+                shopCartVM.OrderHeader.OrderStatus = Constants_OrderStatus.Pending;
+            }
+            if (isCompanyAccout)
+            {
+                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.DelayedPayment;
+                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Approved;
+            }
+            _unitOfWork.OrderHeaderRepository.Add(shopCartVM.OrderHeader);
+            _unitOfWork.Save();
+
+            foreach (var item in shopCartVM.ShoppingCartItems)
+            {
+                OrderDetail orderDetail = new()
+                {
+                    ProductId = item.ProductId,
+                    OrderHeaderId = shopCartVM.OrderHeader.Id,
+                    Price = item.Price,
+                    Count = item.Count,
+                };
+                _unitOfWork.OrderDetailRepository.Add(orderDetail);
+                _unitOfWork.Save();
+            }
+
+            if (isCustomerAccout)
+            {
+                // stripe logic
+            }
+
+            return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
+        }
+
+        public IActionResult OrderConfirmation(int id)
+        {
+            return View(id);
+        }
+
+        private double CalculateOrderTotal(ShoppingCartVM shopCartVM)
+        {
             foreach (var cart in shopCartVM.ShoppingCartItems)
             {
                 cart.Price = GetPriceBasedOnQuantity(cart);
                 shopCartVM.OrderHeader.OrderTotal += (cart.Price * cart.Count);
             }
 
-            return View(shopCartVM);
+            return shopCartVM.OrderHeader.OrderTotal;
         }
 
         private double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)

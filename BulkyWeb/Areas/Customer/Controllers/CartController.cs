@@ -12,13 +12,15 @@ namespace BulkyWeb.Areas.Customer.Controllers
     public class CartController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ILogger<CartController> _logger;
 
         [BindProperty]
         public ShoppingCartVM ShoppingCartVM { get; set; } = null!;
 
-        public CartController(IUnitOfWork unitOfWork)
+        public CartController(IUnitOfWork unitOfWork, ILogger<CartController> logger)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
         }
 
         [Authorize]
@@ -125,53 +127,62 @@ namespace BulkyWeb.Areas.Customer.Controllers
         [ActionName("Summary")]
         public IActionResult SummaryPost(ShoppingCartVM shopCartVM)
         {
-            string? userId = (User.Identity as ClaimsIdentity)?
+            try
+            {
+                string? userId = (User.Identity as ClaimsIdentity)?
                 .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return NotFound();
+                if (userId == null) return NotFound();
 
-            shopCartVM.ShoppingCartItems = _unitOfWork.ShoppingCartRepository
-                .GetAll(filter: sc => sc.ApplicationUserId == userId, includeProperties: "Product");
-            shopCartVM.OrderHeader.OrderDate = DateTime.Now;
-            shopCartVM.OrderHeader.ApplicationUserId = userId;
-            shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+                shopCartVM.ShoppingCartItems = _unitOfWork.ShoppingCartRepository
+                    .GetAll(filter: sc => sc.ApplicationUserId == userId, includeProperties: "Product");
+                shopCartVM.OrderHeader.ApplicationUserId = userId;
+                shopCartVM.OrderHeader.OrderDate = DateTime.Now;
+                shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
 
-            var applicationUser = _unitOfWork.ApplicationUserRepository.Get(u => u.Id == userId);
-            if (applicationUser is null) return NotFound();
+                var applicationUser = _unitOfWork.ApplicationUserRepository.Get(u => u.Id == userId);
+                if (applicationUser is null) return NotFound();
 
-            bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() == 0;
-            bool isCustomerAccout = !isCompanyAccout;
-            if (isCustomerAccout)
-            {
-                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Pending;
-                shopCartVM.OrderHeader.OrderStatus = Constants_OrderStatus.Pending;
-            }
-            if (isCompanyAccout)
-            {
-                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.DelayedPayment;
-                shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Approved;
-            }
-            _unitOfWork.OrderHeaderRepository.Add(shopCartVM.OrderHeader);
-            _unitOfWork.Save();
-
-            foreach (var item in shopCartVM.ShoppingCartItems)
-            {
-                OrderDetail orderDetail = new()
+                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() == 0;
+                bool isCustomerAccout = !isCompanyAccout;
+                if (isCustomerAccout)
                 {
-                    ProductId = item.ProductId,
-                    OrderHeaderId = shopCartVM.OrderHeader.Id,
-                    Price = item.Price,
-                    Count = item.Count,
-                };
-                _unitOfWork.OrderDetailRepository.Add(orderDetail);
+                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Pending;
+                    shopCartVM.OrderHeader.OrderStatus = Constants_OrderStatus.Pending;
+                }
+                if (isCompanyAccout)
+                {
+                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.DelayedPayment;
+                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Approved;
+                }
+                _unitOfWork.OrderHeaderRepository.Add(shopCartVM.OrderHeader);
                 _unitOfWork.Save();
-            }
 
-            if (isCustomerAccout)
+                foreach (var item in shopCartVM.ShoppingCartItems)
+                {
+                    OrderDetail orderDetail = new()
+                    {
+                        ProductId = item.ProductId,
+                        OrderHeaderId = shopCartVM.OrderHeader.Id,
+                        Price = item.Price,
+                        Count = item.Count,
+                    };
+                    _unitOfWork.OrderDetailRepository.Add(orderDetail);
+                    _unitOfWork.Save();
+                }
+
+                if (isCustomerAccout)
+                {
+                    // stripe logic
+                }
+
+                return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
+            }
+            catch (Exception ex)
             {
-                // stripe logic
+                _logger.LogError(0, ex, "Erro na criação de Ordem.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
             }
-
-            return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
         }
 
         public IActionResult OrderConfirmation(int id)
@@ -179,7 +190,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return View(id);
         }
 
-        private double CalculateOrderTotal(ShoppingCartVM shopCartVM)
+        private static double CalculateOrderTotal(ShoppingCartVM shopCartVM)
         {
             foreach (var cart in shopCartVM.ShoppingCartItems)
             {
@@ -190,7 +201,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return shopCartVM.OrderHeader.OrderTotal;
         }
 
-        private double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
+        private static double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
         {
             if (shoppingCartItem.Product is null) throw new ArgumentException("Invalid Product");
 

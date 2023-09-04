@@ -4,11 +4,13 @@ using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stripe.Checkout;
 using System.Security.Claims;
 
 namespace BulkyWeb.Areas.Customer.Controllers
 {
     [Area("Customer")]
+    [Authorize]
     public class CartController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -22,6 +24,8 @@ namespace BulkyWeb.Areas.Customer.Controllers
             _unitOfWork = unitOfWork;
             _logger = logger;
         }
+
+        #region ACTIONS
 
         [Authorize]
         public IActionResult Index()
@@ -130,7 +134,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             try
             {
                 string? userId = (User.Identity as ClaimsIdentity)?
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (userId == null) return NotFound();
 
                 shopCartVM.ShoppingCartItems = _unitOfWork.ShoppingCartRepository
@@ -142,7 +146,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 var applicationUser = _unitOfWork.ApplicationUserRepository.Get(u => u.Id == userId);
                 if (applicationUser is null) return NotFound();
 
-                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() == 0;
+                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
                 bool isCustomerAccout = !isCompanyAccout;
                 if (isCustomerAccout)
                 {
@@ -170,11 +174,12 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     _unitOfWork.Save();
                 }
 
-                if (isCustomerAccout)
-                {
-                    // stripe logic
+                if (isCustomerAccout) {
+                    var session = PaymentForStripe(shopCartVM);
+                    Response.Headers.Location = session.Url;
+                    return new StatusCodeResult(303);
                 }
-
+                
                 return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
             }
             catch (Exception ex)
@@ -201,6 +206,10 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return shopCartVM.OrderHeader.OrderTotal;
         }
 
+        #endregion
+
+        #region PRIVATE METHODS
+
         private static double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
         {
             if (shoppingCartItem.Product is null) throw new ArgumentException("Invalid Product");
@@ -210,5 +219,39 @@ namespace BulkyWeb.Areas.Customer.Controllers
             else if (shoppingCartItem.Count > 100) return shoppingCartItem.Product.PriceAbove100;
             else return 0;
         }
+
+        private Session PaymentForStripe(ShoppingCartVM shopCartVM)
+        {
+            var host = "https://localhost:7026";
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={shopCartVM.OrderHeader.Id}",
+                CancelUrl = $"{host}/Customer/Cart/Index",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+            };
+
+            var sessionLineItems = shopCartVM.ShoppingCartItems
+                .Select(item => new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        UnitAmount = (long)(item.Price * 100),
+                        Currency = "brl",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions { Name = item.Product?.Title }
+                    },
+                    Quantity = item.Count
+                }).ToList();
+            options.LineItems.AddRange(sessionLineItems);
+
+            var service = new SessionService();
+            Session session = service.Create(options);
+            _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(
+                shopCartVM.OrderHeader.Id, session.Id, session.PaymentIntentId);
+            _unitOfWork.Save();
+            return session;
+        }
+
+        #endregion
     }
 }

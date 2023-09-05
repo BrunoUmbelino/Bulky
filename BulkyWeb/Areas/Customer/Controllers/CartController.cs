@@ -192,6 +192,27 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         public IActionResult OrderConfirmation(int id)
         {
+            OrderHeader orderHeader = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == id);
+            if (orderHeader == null) return NotFound();
+
+            var isOrderByCustomer = orderHeader.PaymentStatus != Constants_PaymentStatus.DelayedPayment;
+            if (isOrderByCustomer)
+            {
+                var service = new SessionService();
+                Session session = service.Get(orderHeader.SessionId);
+
+                if (session.PaymentStatus.ToLower() == "paid") {
+                    _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(
+                        id, Constants_OrderStatus.Approved, Constants_PaymentStatus.Approved);
+                    _unitOfWork.Save();
+                }
+            }
+
+            var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepository
+                .GetAll(s=>s.ApplicationUser == orderHeader.ApplicationUser).ToList();
+            _unitOfWork.ShoppingCartRepository.DeleteRange(shoppingCartsForRemove);
+            _unitOfWork.Save();
+
             return View(id);
         }
 

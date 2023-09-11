@@ -1,10 +1,14 @@
 ﻿var dataTable;
 
-$(document).ready(() => loadDataTable());
+$(document).ready(() => {
+    var urlParams = new URLSearchParams(window.location.search);
+    var filterStatus = urlParams.get("filterStatus");
+    loadDataTable(filterStatus);
+});
 
-function loadDataTable() {
+function loadDataTable(filterStatus) {
     dataTable = $('#OrderTable').DataTable({
-        "ajax": { url: "/API/Admin/Order/GetAll" },
+        "ajax": { url: `/API/Admin/Order/GetAll?filterStatus=${filterStatus}` },
         "columns": [
             { data: "id", "width": "20%" },
             { data: "name", "width": "15%" },
@@ -18,7 +22,7 @@ function loadDataTable() {
                     return `
                     <div class="w-75 btn-group" role="group">
                         <a class="btn btn-outline-warning mx-1"
-                            href="/admin/order/details/?id=${data}"
+                            href="/admin/order/details/?orderId=${data}"
                             <i class="bi bi-pencil-square"></i> Details
                         </a>
                     </div>

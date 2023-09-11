@@ -1,4 +1,26 @@
-﻿
+﻿@{
+    var filterStatus = Context.Request.Query["filterStatus"];
+    var all = "bg-secondary text-white";
+    var inProcess = "bg-secondary ";
+    var pending = "bg-secondary";
+    var completed = "bg-secondary";
+    var approved = "bg-secondary";
+
+    switch (filterStatus)
+    {
+        case "inProcess":
+            inProcess = "active bg-primary"; break;
+        case "pending":
+            pending = "active bg-primary"; break;
+        case "approved":
+            approved = "active bg-primary"; break;
+        case "completed":
+            completed = "active bg-primary"; break;
+        default:
+            all = "active bg-primary"; break;
+    }
+}
+
 <div class="container">
     <div class="card shadow border-0 mt-4">
         <div class="card-header bg-primary text-light py-3 rounded-top-2">
@@ -12,17 +34,20 @@
             <div class="d-flex justify-content-between pb-3 pt-2 ">
                 <span class="text-end"></span>
                 <ul class="OrderList-menuFilter list-group list-group-horizontal-sm">
-                    <a asp-controller="Order" asp-action="Index" asp-route-status="inProcess" >
-                    <li class="list-group-item">In Process</li>
+                    <a asp-controller="Order" asp-action="Index" asp-route-filterStatus="all">
+                    <li class="list-group-item @all">All</li>
                     </a>
-                    <a asp-controller="Order" asp-action="Index" asp-route-status="paymentPending" >
-                    <li class="list-group-item">Payment Pending</li>
+                    <a asp-controller="Order" asp-action="Index" asp-route-filterStatus="inProcess">
+                    <li class="list-group-item @inProcess">In Process</li>
                     </a>
-                    <a asp-controller="Order" asp-action="Index" asp-route-status="approved">
-                    <li class="list-group-item">Aproved</li>
-                        </a>
-                    <a asp-controller="Order" asp-action="Index" asp-route-status="all" >
-                        <li class="list-group-item">All</li>
+                    <a asp-controller="Order" asp-action="Index" asp-route-filterStatus="pending">
+                    <li class="list-group-item @pending">Pending</li>
+                    </a>
+                    <a asp-controller="Order" asp-action="Index" asp-route-filterStatus="approved">
+                    <li class="list-group-item @approved">Aproved</li>
+                    </a>
+                    <a asp-controller="Order" asp-action="Index" asp-route-filterStatus="completed">
+                    <li class="list-group-item @completed">Completed</li>
                     </a>
                 </ul>
             </div>

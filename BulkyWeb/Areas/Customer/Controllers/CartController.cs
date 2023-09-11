@@ -156,7 +156,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 if (isCompanyAccout)
                 {
                     shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.DelayedPayment;
-                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Approved;
+                    shopCartVM.OrderHeader.OrderStatus = Constants_PaymentStatus.Approved;
                 }
                 _unitOfWork.OrderHeaderRepository.Add(shopCartVM.OrderHeader);
                 _unitOfWork.Save();

@@ -2,7 +2,7 @@
 
 namespace Bulky.Utility
 {
-    public static class Constants_Role
+    public static class CONST_Roles
     {
         public const string Customer = "Customer";
         public const string Company = "Company";

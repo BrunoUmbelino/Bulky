@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace BulkyWeb.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = Constants_Role.Admin)]
+    [Authorize(Roles = CONST_Roles.Admin)]
     public class ProductController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

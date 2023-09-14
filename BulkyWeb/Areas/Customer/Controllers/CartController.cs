@@ -27,7 +27,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         #region ACTIONS
 
-        [Authorize]
+
         public IActionResult Index()
         {
             string? userId = (User.Identity as ClaimsIdentity)?
@@ -150,13 +150,13 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 bool isCustomerAccout = !isCompanyAccout;
                 if (isCustomerAccout)
                 {
-                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.Pending;
-                    shopCartVM.OrderHeader.OrderStatus = Constants_OrderStatus.Pending;
+                    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.Pending;
+                    shopCartVM.OrderHeader.OrderStatus = CONST_OrderStatus.Pending;
                 }
                 if (isCompanyAccout)
                 {
-                    shopCartVM.OrderHeader.PaymentStatus = Constants_PaymentStatus.DelayedPayment;
-                    shopCartVM.OrderHeader.OrderStatus = Constants_PaymentStatus.Approved;
+                    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
+                    shopCartVM.OrderHeader.OrderStatus = CONST_PaymentStatus.Approved;
                 }
                 _unitOfWork.OrderHeaderRepository.Add(shopCartVM.OrderHeader);
                 _unitOfWork.Save();
@@ -174,12 +174,13 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     _unitOfWork.Save();
                 }
 
-                if (isCustomerAccout) {
+                if (isCustomerAccout)
+                {
                     var session = PaymentForStripe(shopCartVM);
                     Response.Headers.Location = session.Url;
                     return new StatusCodeResult(303);
                 }
-                
+
                 return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
             }
             catch (Exception ex)
@@ -195,23 +196,31 @@ namespace BulkyWeb.Areas.Customer.Controllers
             OrderHeader orderHeader = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == id);
             if (orderHeader == null) return NotFound();
 
-            var isOrderByCustomer = orderHeader.PaymentStatus != Constants_PaymentStatus.DelayedPayment;
-            if (isOrderByCustomer)
+            var isOrderByCompany = orderHeader.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
+            if (isOrderByCompany)
             {
-                var service = new SessionService();
-                Session session = service.Get(orderHeader.SessionId);
+                var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepository
+                    .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
+                _unitOfWork.ShoppingCartRepository.DeleteRange(shoppingCartsForRemove);
+                _unitOfWork.Save();
 
-                if (session.PaymentStatus.ToLower() == "paid") {
-                    _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(
-                        id, Constants_OrderStatus.Approved, Constants_PaymentStatus.Approved);
-                    _unitOfWork.Save();
-                }
+                return View(id);
             }
 
-            var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepository
-                .GetAll(s=>s.ApplicationUser == orderHeader.ApplicationUser).ToList();
-            _unitOfWork.ShoppingCartRepository.DeleteRange(shoppingCartsForRemove);
-            _unitOfWork.Save();
+            var stripeService = new SessionService();
+            Session stripeSession = stripeService.Get(orderHeader.SessionId);
+
+            if (stripeSession.PaymentStatus.ToLower() == "paid")
+            {
+                _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(id, stripeSession.Id, stripeSession.PaymentIntentId);
+                _unitOfWork.OrderHeaderRepository.UpdateOrderPaymentStatus(id, CONST_OrderStatus.Approved, CONST_PaymentStatus.Approved);
+                _unitOfWork.Save();
+
+                var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepository
+                    .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
+                _unitOfWork.ShoppingCartRepository.DeleteRange(shoppingCartsForRemove);
+                _unitOfWork.Save();
+            }
 
             return View(id);
         }
@@ -229,7 +238,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         #endregion
 
+
         #region PRIVATE METHODS
+
 
         private static double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
         {
@@ -273,6 +284,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return session;
         }
 
+
         #endregion
     }
+
+
 }

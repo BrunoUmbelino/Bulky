@@ -37,8 +37,16 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console() // Adicione o provedor de log para a saída do console (opcional)
     .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day) // Adicione o provedor de log para salvar em um arquivo chamado "app.log"
     .CreateLogger();
-
 builder.Logging.AddSerilog(); // Adicione o logger Serilog à configuração do aplicativo
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options=>
+{ 
+    options.IdleTimeout = TimeSpan.FromMinutes(100);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 
 var app = builder.Build();
 
@@ -56,6 +64,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",

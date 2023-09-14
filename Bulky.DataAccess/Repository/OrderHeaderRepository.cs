@@ -18,12 +18,12 @@ namespace Bulky.DataAccess.Repository
             _context.OrderHeaders.Update(orderHeader);
         }
 
-        public void UpdateOrderPaymentStatus(int id, string orderStatus, string? paymentStatus = null)
+        public void UpdateOrderPaymentStatus(int id, string? orderStatus = null, string? paymentStatus = null)
         {
             var orderHeaderDB = _context.OrderHeaders.FirstOrDefault(o => o.Id == id);
             if (orderHeaderDB == null) return;
             
-            orderHeaderDB.OrderStatus = orderStatus;
+            if (!String.IsNullOrEmpty(orderStatus)) orderHeaderDB.OrderStatus = orderStatus;
             if (!String.IsNullOrEmpty(paymentStatus)) orderHeaderDB.PaymentStatus = paymentStatus;
         }
 
@@ -38,7 +38,6 @@ namespace Bulky.DataAccess.Repository
                 orderHeaderDB.PaymentIntentId = paymentItentId;
                 orderHeaderDB.PaymentDate = DateTime.Now;
             }
-            
         }
     }
 }

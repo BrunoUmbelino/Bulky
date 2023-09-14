@@ -25,11 +25,11 @@
                     {
                         <div class="row border-bottom pb-3">
                             <div class="d-none d-lg-block col-lg-1 text-center py-2">
-                                <img src="@cartItem.Product.ImageUrl" class="rounded" width="100%" />
+                                <img src="@cartItem.Product?.ImageUrl" class="rounded" width="100%" />
                             </div>
                             <div class="col-12 col-lg-6 pt-md-3">
-                                <h5 class="text-uppercase text-secondary"><strong>@cartItem.Product.Title</strong></h5>
-                                <p><small>@Html.Raw(@cartItem.Product.Description)</small></p>
+                                <h5 class="text-uppercase text-primary"><strong>@cartItem.Product.Title</strong></h5>
+                                <p><small>@Html.Raw(@cartItem.Product?.Description)</small></p>
                             </div>
                             <div class="col-12  col-lg-5 text-center row">
                                 <div class="col-3 text-md-right pt-2 pt-md-4">

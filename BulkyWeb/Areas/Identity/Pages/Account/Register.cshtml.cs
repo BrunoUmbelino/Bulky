@@ -122,12 +122,12 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
 
         public async Task OnGetAsync(string returnUrl = null)
         {
-            if (!_roleManager.RoleExistsAsync(Constants_Role.Customer).GetAwaiter().GetResult())
+            if (!_roleManager.RoleExistsAsync(CONST_Roles.Customer).GetAwaiter().GetResult())
             {
-                _roleManager.CreateAsync(new IdentityRole(Constants_Role.Customer)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(Constants_Role.Company)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(Constants_Role.Admin)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(Constants_Role.Employee)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Customer)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Company)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Admin)).GetAwaiter().GetResult();
+                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Employee)).GetAwaiter().GetResult();
             }
 
             Input = new()
@@ -156,7 +156,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                 user.State = Input.State;
                 user.PostalCode = Input.PostalCode;
                 user.PhoneNumber = Input.PhoneNumber;
-                if (Input.Role == Constants_Role.Company) user.CompanyId = Input.CompanyId;
+                if (Input.Role == CONST_Roles.Company) user.CompanyId = Input.CompanyId;
 
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
@@ -169,7 +169,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     if (!Input.Role.IsNullOrEmpty())
                         await _userManager.AddToRoleAsync(user, Input.Role);
                     else
-                        await _userManager.AddToRoleAsync(user, Constants_Role.Customer);
+                        await _userManager.AddToRoleAsync(user, CONST_Roles.Customer);
 
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);

@@ -58,7 +58,7 @@ namespace Bulky.DataAccess.Migrations.DbInitializer
                         City = "Chicago",
                         LockoutEnabled = false,
                          }, password: "<yk61fW^1;OvZ3").GetAwaiter().GetResult();
-                    if (!result.Succeeded) throw new Exception("Create or userAdmin failed");
+                    if (!result.Succeeded) throw new Exception("Create userAdmin failed");
 
                     var user = _context.ApplicationUsers.FirstOrDefault(u => u.Email == "admin@email.com") ?? throw new Exception("Get userAdmin failed");
                     _userManager.AddToRoleAsync(user, CONST_Roles.Admin).GetAwaiter().GetResult();

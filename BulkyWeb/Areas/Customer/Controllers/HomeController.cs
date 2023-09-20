@@ -1,6 +1,9 @@
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Bulky.Models.ViewModels;
+using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -21,6 +24,14 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         public IActionResult Index()
         {
+            var userIdFromIdentity = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdFromIdentity is not null)
+            {
+                var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == userIdFromIdentity)?.Count();
+                if (cartItemsQuantity is not null)
+                    HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+            }
+
             var products = _unitOfWork.ProductRepository.GetAll(includeProperties: "Category");
             return View(products);
         }
@@ -28,7 +39,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
         public IActionResult Details(int productId)
         {
             if (productId == 0) return NotFound();
-            var product = _unitOfWork.ProductRepository.Get(p=>p.Id== productId, includeProperties: "Category");
+            var product = _unitOfWork.ProductRepository.Get(p => p.Id == productId, includeProperties: "Category");
             if (product == null) return NotFound();
 
             ShoppingCartItem shoppingCart = new()
@@ -58,17 +69,22 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 if (shoppingCartFromDb == null)
                 {
                     _unitOfWork.ShoppingCartRepository.Add(shoppingCart);
+                    _unitOfWork.Save();
+                    var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == userIdFromIdentity)?.Count();
+                    if (cartItemsQuantity is not null)
+                        HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+
                 }
                 else
                 {
                     shoppingCartFromDb.Count += shoppingCart.Count;
                     _unitOfWork.ShoppingCartRepository.Update(shoppingCartFromDb);
+                    _unitOfWork.Save();
                 }
-                _unitOfWork.Save();
 
                 TempData["successMessage"] = $"Cart updated sucessfully";
                 return RedirectToAction(nameof(Index));
-            } 
+            }
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Erro no processo de UPSERT do item carrinho de compras.");

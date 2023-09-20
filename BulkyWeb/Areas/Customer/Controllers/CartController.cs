@@ -75,13 +75,18 @@ namespace BulkyWeb.Areas.Customer.Controllers
             if (cartItemDB.Count <= 0)
             {
                 _unitOfWork.ShoppingCartRepository.Delete(cartItemDB);
+                _unitOfWork.Save();
+
+                var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
+                if (cartItemsQuantity is not null)
+                    HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
             }
             else
             {
                 cartItemDB.Price = GetPriceBasedOnQuantity(cartItemDB);
                 _unitOfWork.ShoppingCartRepository.Update(cartItemDB);
+                _unitOfWork.Save();
             }
-            _unitOfWork.Save();
 
             return RedirectToAction(nameof(Index));
         }
@@ -94,6 +99,10 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
             _unitOfWork.ShoppingCartRepository.Delete(cartItemDB);
             _unitOfWork.Save();
+
+            var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
+            if (cartItemsQuantity is not null)
+                HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
 
             return RedirectToAction(nameof(Index));
         }
@@ -225,6 +234,13 @@ namespace BulkyWeb.Areas.Customer.Controllers
             return View(id);
         }
 
+
+        #endregion
+
+
+        #region PRIVATE METHODS
+
+
         private static double CalculateOrderTotal(ShoppingCartVM shopCartVM)
         {
             foreach (var cart in shopCartVM.ShoppingCartItems)
@@ -235,12 +251,6 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
             return shopCartVM.OrderHeader.OrderTotal;
         }
-
-        #endregion
-
-
-        #region PRIVATE METHODS
-
 
         private static double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
         {

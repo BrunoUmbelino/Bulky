@@ -8,6 +8,7 @@ using Bulky.Utility;
 using Serilog;
 using Serilog.Events;
 using Stripe;
+using Bulky.DataAccess.Migrations.DbInitializer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,31 +23,39 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 builder.Services.ConfigureApplicationCookie(options =>
-    {
-        options.LoginPath = "/Identity/Account/Login";
-        options.LogoutPath = "/Identity/Account/Logout";
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-    });
+{
+    options.LoginPath = "/Identity/Account/Login";
+    options.LogoutPath = "/Identity/Account/Logout";
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+});
+
 builder.Services.AddScoped<IEmailSender, FakeEmailSender>();
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
-
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information) // Ajuste o nível mínimo de log para as mensagens do Microsoft.Extensions.Logging
-    .WriteTo.Console() // Adicione o provedor de log para a saída do console (opcional)
-    .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day) // Adicione o provedor de log para salvar em um arquivo chamado "app.log"
-    .CreateLogger();
-builder.Logging.AddSerilog(); // Adicione o logger Serilog à configuração do aplicativo
-
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options=>
-{ 
+builder.Services.AddSession(options =>
+{
     options.IdleTimeout = TimeSpan.FromMinutes(100);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+builder.Services.AddAuthentication().AddFacebook(options =>
+{
+    options.AppId = "1357448888483295";
+    options.AppSecret = "75883a5cf14ed2f324139138f40658d3";
+});
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .WriteTo.Console()
+    .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+builder.Logging.AddSerilog();
+
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
 var app = builder.Build();
 
@@ -75,4 +84,20 @@ app.MapRazorPages();
 
 StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe:SecretKey").Get<string>();
 
+SeedDatabase();
+
 app.Run();
+
+
+#region PRIVATE METHODS
+
+void SeedDatabase()
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbInitializer = scope.ServiceProvider.GetService<IDbInitializer>();
+        dbInitializer?.Initialize();
+    }
+}
+
+#endregion

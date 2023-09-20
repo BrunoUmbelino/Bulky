@@ -122,14 +122,6 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
 
         public async Task OnGetAsync(string returnUrl = null)
         {
-            if (!_roleManager.RoleExistsAsync(CONST_Roles.Customer).GetAwaiter().GetResult())
-            {
-                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Customer)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Company)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Admin)).GetAwaiter().GetResult();
-                _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Employee)).GetAwaiter().GetResult();
-            }
-
             Input = new()
             {
                 RoleList = _roleManager.Roles.Select(r => r.Name)
@@ -189,10 +181,15 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
                     }
                     else
                     {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return LocalRedirect(returnUrl);
+                        if (User.IsInRole(CONST_Roles.Admin))
+                            TempData["successMessage"] = "User created sussesfuly";
+                        else
+                            await _signInManager.SignInAsync(user, isPersistent: false);
                     }
+
+                    return LocalRedirect(returnUrl);
                 }
+
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);

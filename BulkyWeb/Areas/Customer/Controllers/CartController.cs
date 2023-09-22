@@ -195,7 +195,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Erro na criação de Ordem.");
-                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                TempData["errorMessage"] = $"{ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
         }

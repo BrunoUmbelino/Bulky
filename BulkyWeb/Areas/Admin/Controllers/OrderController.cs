@@ -116,7 +116,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 orderHeaderDB.OrderStatus = CONST_OrderStatus.Shipped;
                 orderHeaderDB.ShippingDate = DateTime.Now;
                 if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
-                    orderHeaderDB.PaymentDueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(30));
+                    orderHeaderDB.PaymentDueDate = DateTime.Now.AddDays(30);
 
                 _unitOfWork.OrderHeaderRepository.Update(orderHeaderDB);
                 _unitOfWork.Save();

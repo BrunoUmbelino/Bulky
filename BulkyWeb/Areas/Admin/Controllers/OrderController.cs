@@ -263,7 +263,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         private Session PaymentForStripe(OrderVM orderVM)
         {
-            var host = "https://localhost:7026";
+            var host = $"{Request.Scheme}://{Request.Host.Value}";
             var options = new SessionCreateOptions
             {
                 SuccessUrl = $"{host}/Admin/Order/PaymentConfirmation?orderId={orderVM.OrderHeader.Id}",

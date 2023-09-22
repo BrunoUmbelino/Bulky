@@ -264,7 +264,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         private Session PaymentForStripe(ShoppingCartVM shopCartVM)
         {
-            var host = "https://localhost:7026";
+            var host = $"{Request.Scheme}://{Request.Host.Value}";
             var options = new SessionCreateOptions
             {
                 SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={shopCartVM.OrderHeader.Id}",

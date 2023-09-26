@@ -16,11 +16,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
     {
         private readonly ILogger<UserController> _logger;
         private readonly AppDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public UserController(AppDbContext context, ILogger<UserController> logger)
+        public UserController(AppDbContext context, ILogger<UserController> logger, UserManager<IdentityUser> userManager)
         {
             _context = context;
             _logger = logger;
+            _userManager = userManager;
         }
 
         public IActionResult Index()
@@ -51,22 +53,23 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                //var userDb = _context.ApplicationUsers.FirstOrDefault(u=>u.Id == userRoleVM.ApplicationUser.Id);
-                //if (userDb == null) return NotFound();
+                var userRoleId = _context.UserRoles.FirstOrDefault(r => r.UserId == userRoleVM.ApplicationUser.Id)?.RoleId;
+                if (userRoleId == null) return NotFound();
+                var oldRole = _context.Roles.FirstOrDefault(r => r.Id == userRoleId)?.Name;
+                if (oldRole == null) return NotFound();
 
-                //userDb.Role = userRoleVM.ApplicationUser.Role;
-                //if (userRoleVM.ApplicationUser.Role == CONST_Roles.Company) userDb.CompanyId = userRoleVM.ApplicationUser.CompanyId;
-                //else userDb.CompanyId = null;
-                //_context.ApplicationUsers.Update(userDb);
-                //_context.SaveChanges();
+                if (oldRole != userRoleVM.ApplicationUser.Role){
+                    _userManager.RemoveFromRoleAsync(userRoleVM.ApplicationUser, oldRole).GetAwaiter().GetResult();
+                    _userManager.AddToRoleAsync(userRoleVM.ApplicationUser, userRoleVM.ApplicationUser.Role).GetAwaiter().GetResult();
+                }
 
-                var userRoleDb = _context.UserRoles.FirstOrDefault(r=>r.UserId == userRoleVM.Id);
-                if (userRoleDb == null) return NotFound();
-
-                userRoleDb.RoleId = userRoleVM.ApplicationUser.Role;
-                _context.UserRoles.Update(userRoleDb);
-
-                //if (userRoleVM.ApplicationUser.Role )
+                var userDb = _context.ApplicationUsers.FirstOrDefault(u => u.Id == userRoleVM.ApplicationUser.Id);
+                if (userDb == null) return NotFound();
+                
+                if (userRoleVM.ApplicationUser.Role == CONST_Roles.Company)
+                    userDb.CompanyId = userRoleVM.ApplicationUser.CompanyId;
+                else
+                    userDb.CompanyId = null;
 
                 _context.SaveChanges();
 
@@ -115,7 +118,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
             try
             {
                 var userDb = _context.ApplicationUsers.FirstOrDefault(u => u.Id == id);
-                if (userDb == null) 
+                if (userDb == null)
                     return Json(new { success = false, message = "User not found" });
 
                 var userIsLocked = userDb.LockoutEnd != null && userDb.LockoutEnd > DateTime.Now;
@@ -140,7 +143,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
             return _context.Roles.ToList().Select(c => new SelectListItem()
             {
                 Text = c.Name,
-                Value = c.Id,
+                Value = c.Name,
             });
         }
 
@@ -150,7 +153,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
             {
                 Text = c.Name,
                 Value = c.Id.ToString(),
-            }) ;
+            });
         }
     }
 }

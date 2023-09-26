@@ -35,7 +35,7 @@ function LoadDataTable() {
                             <div class="text-center">
                                   <a onclick=LockUnlockAccount("${data.id}")  
                                     class="btn btn-dark rounded role="button" style="width: 130px">
-                                    <i class="bi bi-unlock-fill"></i> Lock
+                                    <i class="bi bi-lock-fill"></i> Lock
                                 </a>
                                 <a href="/Admin/User/UserRoleManager/?userId=${data.id}"
                                     class="btn btn-warning rounded" role="button" style="width: 130px">

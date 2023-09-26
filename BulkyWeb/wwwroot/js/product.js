@@ -1,8 +1,8 @@
 ﻿var dataTable;
 
-$(document).ready(() => loadDataTable());
+$(document).ready(() => LoadDataTable());
 
-function loadDataTable() {
+function LoadDataTable() {
     dataTable = $('#ProductTable').DataTable({
         "ajax": { url: "/admin/api/product/getall" },
         "columns": [

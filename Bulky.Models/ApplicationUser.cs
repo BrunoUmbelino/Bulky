@@ -17,7 +17,12 @@ namespace Bulky.Models
         public string? State { get; set; }
         
         public string? PostalCode { get; set; }
-        
+
+        [NotMapped]
+        public string Role { get; set; } = null!;
+        [NotMapped]
+        public string RoleId { get; set; } = null!;
+
         public int? CompanyId { get; set; }
         
         [ForeignKey(nameof(CompanyId))]

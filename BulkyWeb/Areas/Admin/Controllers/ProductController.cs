@@ -146,7 +146,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         #region AUXILIARY FUNCTIONS 
 
-        IEnumerable<SelectListItem> PopulateCategoryList()
+        private IEnumerable<SelectListItem> PopulateCategoryList()
         {
             return _unitOfWork.CategoryRepository
                 .GetAll()

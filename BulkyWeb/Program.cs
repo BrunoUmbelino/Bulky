@@ -1,23 +1,27 @@
 using Bulky.DataAccess.Data;
+using Bulky.DataAccess.DbInitializer;
 using Bulky.DataAccess.Repository;
 using Bulky.DataAccess.Repository.IRepository;
-using Microsoft.EntityFrameworkCore;
+using Bulky.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Bulky.Utility;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
 using Stripe;
-using Bulky.DataAccess.DbInitializer;
 
 var builder = WebApplication.CreateBuilder(args);
+var config = new ConfigurationBuilder();
 DotNetEnv.Env.Load();
 
 var connectionString = string.Empty;
-if (builder.Environment.IsDevelopment())
-    connectionString = builder.Configuration.GetSection("ConnectionStrings:DefaultConnection").Value;
 if (builder.Environment.IsProduction())
-    connectionString = Environment.GetEnvironmentVariable("PROD_DB_CONNECTION_STRING") ?? throw new KeyNotFoundException(message: "PROD_DB_CONNECTION_STRING");
+{
+    connectionString = builder.Configuration.GetConnectionString("AppConfig");
+    builder.Configuration.AddAzureAppConfiguration(connectionString);
+}
+else
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -50,7 +54,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
     options.AppId = "1357448888483295";
-    options.AppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") 
+    options.AppSecret = "ajksdhfkajshdf23" 
         ?? throw new KeyNotFoundException(message: "FACEBOOK_APP_SECRET");
 });
 
@@ -88,7 +92,7 @@ app.MapRazorPages();
 
 SeedDatabase();
 
-StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") 
+StripeConfiguration.ApiKey = "12312asdfsdf"
     ?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");
 
 app.Run();

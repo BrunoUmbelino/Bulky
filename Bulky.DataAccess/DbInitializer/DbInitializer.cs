@@ -58,7 +58,8 @@ namespace Bulky.DataAccess.DbInitializer
                         PostalCode = "23422",
                         City = "Chicago",
                         LockoutEnabled = false,
-                    }, password: Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? throw new KeyNotFoundException())
+                    }, password: Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
+                        ?? throw new KeyNotFoundException(message: "ADMIN_PASSWORD"))
                         .GetAwaiter().GetResult();
                     if (!result.Succeeded) throw new Exception("Create userAdmin failed");
 

@@ -15,9 +15,11 @@ DotNetEnv.Env.Load();
 
 var connectionString = string.Empty;
 if (builder.Environment.IsDevelopment())
-    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") ?? throw new KeyNotFoundException();
+    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") 
+        ?? throw new KeyNotFoundException(message: "DEV_DB_CONNECTION_STRING");
 if (builder.Environment.IsProduction())
-    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") ?? throw new KeyNotFoundException();
+    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") 
+        ?? throw new KeyNotFoundException(message: "DEV_DB_CONNECTION_STRING");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -50,7 +52,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
     options.AppId = "1357448888483295";
-    options.AppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") ?? throw new KeyNotFoundException();
+    options.AppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") 
+        ?? throw new KeyNotFoundException(message: "FACEBOOK_APP_SECRET");
 });
 
 Log.Logger = new LoggerConfiguration()
@@ -87,7 +90,8 @@ app.MapRazorPages();
 
 SeedDatabase();
 
-StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? throw new KeyNotFoundException();
+StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") 
+    ?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");
 
 app.Run();
 

@@ -1,4 +1,4 @@
-﻿namespace Bulky.DataAccess.Migrations.DbInitializer
+﻿namespace Bulky.DataAccess.DbInitializer
 {
     public interface IDbInitializer
     {

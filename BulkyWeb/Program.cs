@@ -8,14 +8,20 @@ using Bulky.Utility;
 using Serilog;
 using Serilog.Events;
 using Stripe;
-using Bulky.DataAccess.Migrations.DbInitializer;
+using Bulky.DataAccess.DbInitializer;
 
 var builder = WebApplication.CreateBuilder(args);
+DotNetEnv.Env.Load();
 
-// Add services to the container.
-builder.Services.AddDbContext<AppDbContext>(options => options
-    .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+var connectionString = string.Empty;
+if (builder.Environment.IsDevelopment())
+    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") ?? throw new KeyNotFoundException();
+if (builder.Environment.IsProduction())
+    connectionString = Environment.GetEnvironmentVariable("DEV_DB_CONNECTION_STRING") ?? throw new KeyNotFoundException();
+
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
 builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
 
@@ -28,7 +34,6 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Identity/Account/Logout";
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
-
 builder.Services.AddScoped<IEmailSender, FakeEmailSender>();
 
 builder.Services.AddDistributedMemoryCache();
@@ -45,7 +50,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
     options.AppId = "1357448888483295";
-    options.AppSecret = "75883a5cf14ed2f324139138f40658d3";
+    options.AppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") ?? throw new KeyNotFoundException();
 });
 
 Log.Logger = new LoggerConfiguration()
@@ -54,8 +59,6 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 builder.Logging.AddSerilog();
-
-builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
 var app = builder.Build();
 
@@ -82,9 +85,9 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-StripeConfiguration.ApiKey = builder.Configuration.GetSection("Stripe:SecretKey").Get<string>();
-
 SeedDatabase();
+
+StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? throw new KeyNotFoundException();
 
 app.Run();
 

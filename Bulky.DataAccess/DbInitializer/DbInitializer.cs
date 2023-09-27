@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Bulky.DataAccess.Migrations.DbInitializer
+namespace Bulky.DataAccess.DbInitializer
 {
     public class DbInitializer : IDbInitializer
     {
@@ -46,6 +46,7 @@ namespace Bulky.DataAccess.Migrations.DbInitializer
                     _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Admin)).GetAwaiter().GetResult();
                     _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Employee)).GetAwaiter().GetResult();
 
+                    DotNetEnv.Env.Load();
                     var result = _userManager.CreateAsync(user: new ApplicationUser
                     {
                         UserName = "admin@email.com",
@@ -57,7 +58,8 @@ namespace Bulky.DataAccess.Migrations.DbInitializer
                         PostalCode = "23422",
                         City = "Chicago",
                         LockoutEnabled = false,
-                         }, password: "<yk61fW^1;OvZ3").GetAwaiter().GetResult();
+                    }, password: Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? throw new KeyNotFoundException())
+                        .GetAwaiter().GetResult();
                     if (!result.Succeeded) throw new Exception("Create userAdmin failed");
 
                     var user = _context.ApplicationUsers.FirstOrDefault(u => u.Email == "admin@email.com") ?? throw new Exception("Get userAdmin failed");

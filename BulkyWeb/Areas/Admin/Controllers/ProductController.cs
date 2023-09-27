@@ -48,7 +48,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [HttpPost]
         public IActionResult Upsert(ProductVM productVM, IFormFile? file)
         {
-            if (productVM.Product.ImageUrl == null) productVM.Product.ImageUrl = "";
+            //if (productVM.Product.ImageUrl == null) productVM.Product.ImageUrl = "";
 
             if (!ModelState.IsValid)
             {
@@ -60,13 +60,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
             {
                 var wwwRootPath = _webHostEnvironment.WebRootPath;
 
-                if (!productVM.Product.ImageUrl.IsNullOrEmpty())
-                {
-                    DeleteProductImageIfExist(productVM.Product.ImageUrl, wwwRootPath);
-                }
+                //if (!productVM.Product.ImageUrl.IsNullOrEmpty())
+                //{
+                //    DeleteProductImageIfExist(productVM.Product.ImageUrl, wwwRootPath);
+                //}
 
                 var newImageName = SaveProductImage(file, wwwRootPath);
-                productVM.Product.ImageUrl = @$"\images\products\{newImageName}";
+                //productVM.Product.ImageUrl = @$"\images\products\{newImageName}";
             }
 
             string actionMessage;
@@ -134,7 +134,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
             }
 
             var wwwRootPath = _webHostEnvironment.WebRootPath;
-            DeleteProductImageIfExist(wwwRootPath, product.ImageUrl);
+            //DeleteProductImageIfExist(wwwRootPath, product.ImageUrl);
 
             _unitOfWork.ProductRepository.Delete(product);
             _unitOfWork.Save();

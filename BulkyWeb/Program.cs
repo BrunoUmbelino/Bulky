@@ -83,7 +83,7 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-SeedDatabase();
+//SeedDatabase();
 
 StripeConfiguration.ApiKey = "12312asdfsdf";
 //?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");

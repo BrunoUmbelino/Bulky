@@ -13,10 +13,7 @@ using Stripe;
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
-var connectionString = builder.Configuration.GetConnectionString("AppConnection");
-
-if (builder.Environment.IsProduction())
-    connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["AppConnection"].ConnectionString;
+string connectionString = builder.Configuration.GetConnectionString("AppConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

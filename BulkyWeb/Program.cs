@@ -15,8 +15,8 @@ DotNetEnv.Env.Load();
 
 var connectionString = builder.Configuration.GetConnectionString("AppConnection");
 
-//if(builder.Environment.IsProduction())
-//    builder.Configuration.AddAzureAppConfiguration(connectionString);
+if (builder.Environment.IsProduction())
+    connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["AppConnection"].ConnectionString;
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -50,7 +50,7 @@ builder.Services.AddAuthentication().AddFacebook(options =>
 {
     options.AppId = "1357448888483295";
     options.AppSecret = "ajksdhfkajshdf23";
-        //?? throw new KeyNotFoundException(message: "FACEBOOK_APP_SECRET");
+    //?? throw new KeyNotFoundException(message: "FACEBOOK_APP_SECRET");
 });
 
 Log.Logger = new LoggerConfiguration()
@@ -89,7 +89,7 @@ app.MapRazorPages();
 SeedDatabase();
 
 StripeConfiguration.ApiKey = "12312asdfsdf";
-    //?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");
+//?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");
 
 app.Run();
 

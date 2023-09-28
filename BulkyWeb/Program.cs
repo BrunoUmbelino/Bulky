@@ -11,17 +11,12 @@ using Serilog.Events;
 using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
-var config = new ConfigurationBuilder();
 DotNetEnv.Env.Load();
 
-var connectionString = string.Empty;
-if (builder.Environment.IsProduction())
-{
-    connectionString = builder.Configuration.GetConnectionString("AppConfig");
+var connectionString = builder.Configuration.GetConnectionString("AppConnection");
+
+if(builder.Environment.IsProduction())
     builder.Configuration.AddAzureAppConfiguration(connectionString);
-}
-else
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

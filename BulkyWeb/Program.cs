@@ -15,8 +15,8 @@ DotNetEnv.Env.Load();
 
 var connectionString = builder.Configuration.GetConnectionString("AppConnection");
 
-if(builder.Environment.IsProduction())
-    builder.Configuration.AddAzureAppConfiguration(connectionString);
+//if(builder.Environment.IsProduction())
+//    builder.Configuration.AddAzureAppConfiguration(connectionString);
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -59,6 +59,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 builder.Logging.AddSerilog();
+
 
 var app = builder.Build();
 

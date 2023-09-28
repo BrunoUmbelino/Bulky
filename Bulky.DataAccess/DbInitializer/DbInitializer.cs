@@ -22,7 +22,7 @@ namespace Bulky.DataAccess.DbInitializer
             _logger = logger;
         }
 
-        public void Initialize()
+        public void Initialize(string adminUserPassword)
         {
             try
             {
@@ -46,7 +46,6 @@ namespace Bulky.DataAccess.DbInitializer
                     _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Admin)).GetAwaiter().GetResult();
                     _roleManager.CreateAsync(new IdentityRole(CONST_Roles.Employee)).GetAwaiter().GetResult();
 
-                    DotNetEnv.Env.Load();
                     var result = _userManager.CreateAsync(user: new ApplicationUser
                     {
                         UserName = "admin@email.com",
@@ -58,8 +57,7 @@ namespace Bulky.DataAccess.DbInitializer
                         PostalCode = "23422",
                         City = "Chicago",
                         LockoutEnabled = false,
-                    }, password: Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
-                        ?? "123456")
+                    }, password: adminUserPassword)
                         .GetAwaiter().GetResult();
                     if (!result.Succeeded) throw new Exception("Create userAdmin failed");
 

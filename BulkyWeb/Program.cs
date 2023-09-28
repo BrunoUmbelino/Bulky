@@ -13,9 +13,9 @@ using Stripe;
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
-string connectionString = builder.Configuration.GetConnectionString("AppConnection") 
-    ?? throw new Exception(message: "ConnectionString was not loaded");
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
+    builder.Configuration.GetConnectionString("AppConnection") 
+    ?? throw new Exception(message: "ConnectionString was not loaded")));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
@@ -43,11 +43,13 @@ builder.Services.AddSession(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+string facebookAppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") 
+    ?? builder.Configuration["FacebookAuth:AppSecret"] 
+    ?? throw new Exception(message: "FacebookAuth:AppSecret was not loaded");
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
-    options.AppId = "1357448888483295";
-    options.AppSecret = "ajksdhfkajshdf23";
-    //?? throw new KeyNotFoundException(message: "FACEBOOK_APP_SECRET");
+    options.AppId = builder.Configuration["FacebookAuth:AppId"] ?? throw new Exception(message: "FacebookAuth:AppId was not loaded");
+    options.AppSecret = facebookAppSecret;
 });
 
 Log.Logger = new LoggerConfiguration()
@@ -83,22 +85,25 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-//SeedDatabase();
+string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
+    ?? builder.Configuration["AdminPassword"]
+    ?? throw new Exception(message: "AdminPassword was not loaded");
+SeedDatabase(adminPassword);
 
-StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"]
-    ?? throw new KeyNotFoundException(message: "Stripe Secretkey was not loaded");
+string? spripeKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? builder.Configuration["Stripe:SecretKey"];
+StripeConfiguration.ApiKey = spripeKey ?? throw new Exception(message: "Stripe Secretkey was not loaded");
 
 app.Run();
 
 
 #region PRIVATE METHODS
 
-void SeedDatabase()
+void SeedDatabase(string adminUserPassword)
 {
     using (var scope = app.Services.CreateScope())
     {
         var dbInitializer = scope.ServiceProvider.GetService<IDbInitializer>();
-        dbInitializer?.Initialize();
+        dbInitializer?.Initialize(adminUserPassword);
     }
 }
 

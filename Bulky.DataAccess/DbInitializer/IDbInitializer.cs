@@ -2,6 +2,6 @@
 {
     public interface IDbInitializer
     {
-        void Initialize();
+        void Initialize(string adminPassword);
     }
 }

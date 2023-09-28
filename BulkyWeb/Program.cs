@@ -13,8 +13,8 @@ using Stripe;
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
-string connectionString = builder.Configuration.GetConnectionString("AppConnection");
-
+string connectionString = builder.Configuration.GetConnectionString("AppConnection") 
+    ?? throw new Exception(message: "ConnectionString was not loaded");
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
@@ -85,8 +85,8 @@ app.MapRazorPages();
 
 //SeedDatabase();
 
-StripeConfiguration.ApiKey = "12312asdfsdf";
-//?? throw new KeyNotFoundException(message: "STRIPE_SECRET_KEY");
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"]
+    ?? throw new KeyNotFoundException(message: "Stripe Secretkey was not loaded");
 
 app.Run();
 

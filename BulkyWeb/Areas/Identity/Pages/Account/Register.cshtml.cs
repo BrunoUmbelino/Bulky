@@ -126,7 +126,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             {
                 RoleList = _roleManager.Roles.Select(r => r.Name)
                     .Select(n => new SelectListItem { Text = n, Value = n }),
-                CompanyList = _unitOfWork.CompanyRepository.GetAll()
+                CompanyList = _unitOfWork.CompanyRepo.GetAll()
                     .Select(c => new SelectListItem { Text= c.Name, Value = c.Id.ToString()})
             };
 
@@ -200,7 +200,7 @@ namespace BulkyWeb.Areas.Identity.Pages.Account
             {
                 RoleList = _roleManager.Roles.Select(r => r.Name)
                    .Select(n => new SelectListItem { Text = n, Value = n }),
-                CompanyList = _unitOfWork.CompanyRepository.GetAll()
+                CompanyList = _unitOfWork.CompanyRepo.GetAll()
                    .Select(c => new SelectListItem { Text = c.Name, Value = c.Id.ToString() })
             };
 

@@ -6,24 +6,26 @@ namespace Bulky.DataAccess.Repository
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
-        public ICategoryRepository CategoryRepository { get; private set; }
-        public IProductRepository ProductRepository { get; private set; }
-        public ICompanyRepository CompanyRepository { get; private set; }
-        public IShoppingCartRepository ShoppingCartRepository { get; private set; }
-        public IApplicationUserRepository ApplicationUserRepository { get; private set; }
-        public IOrderHeaderRepository OrderHeaderRepository { get; private set; }
-        public IOrderDetailRepository OrderDetailRepository { get; private set; }
-
+        public ICategoryRepository CategoryRepo { get; private set; }
+        public IProductRepository ProductRepo { get; private set; }
+        public ICompanyRepository CompanyRepo { get; private set; }
+        public IShoppingCartRepository ShoppingCartRepo { get; private set; }
+        public IApplicationUserRepository ApplicationUserRepo { get; private set; }
+        public IOrderHeaderRepository OrderHeaderRepo { get; private set; }
+        public IOrderDetailRepository OrderDetailRepo { get; private set; }
+        public IProductImageRepository ProductImageRepo {  get; private set; }
+        
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
-            CategoryRepository = new CategoryRepository(_context);
-            ProductRepository = new ProductRepository(_context);
-            CompanyRepository = new CompanyRepository(_context);
-            ShoppingCartRepository = new ShoppingCartRepository(_context);
-            ApplicationUserRepository = new ApplicationUserRepository(_context);
-            OrderHeaderRepository = new OrderHeaderRepository(_context);
-            OrderDetailRepository = new OrderDetailRepository(_context);
+            CategoryRepo = new CategoryRepository(_context);
+            ProductRepo = new ProductRepository(_context);
+            CompanyRepo = new CompanyRepository(_context);
+            ShoppingCartRepo = new ShoppingCartRepository(_context);
+            ApplicationUserRepo = new ApplicationUserRepository(_context);
+            OrderHeaderRepo = new OrderHeaderRepository(_context);
+            OrderDetailRepo = new OrderDetailRepository(_context);
+            ProductImageRepo = new ProductImageRepository(_context);
         }
 
         public void Save()

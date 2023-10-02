@@ -22,7 +22,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         // GET: CompanyController
         public ActionResult Index()
         {
-            var companies = _unitOfWork.CompanyRepository.GetAll();
+            var companies = _unitOfWork.CompanyRepo.GetAll();
             return View(companies);
         }
 
@@ -30,7 +30,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public ActionResult Upsert(int id)
         {
             if (id == 0) return NotFound();
-            var company = _unitOfWork.CompanyRepository.Get(c => c.Id == id);
+            var company = _unitOfWork.CompanyRepo.Get(c => c.Id == id);
             if (company == null) return NotFound();
 
             return View(company);
@@ -49,12 +49,12 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 if (company.Id == 0)
                 {
                     messageAction = "create";
-                    _unitOfWork.CompanyRepository.Add(company);
+                    _unitOfWork.CompanyRepo.Add(company);
                 }
                 else
                 {
                     messageAction = "update";
-                    _unitOfWork.CompanyRepository.update(company);
+                    _unitOfWork.CompanyRepo.update(company);
                 }
 
                 _unitOfWork.Save();
@@ -71,7 +71,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public ActionResult Delete(int id)
         {
             if (id == 0) return NotFound();
-            var company = _unitOfWork.CompanyRepository.Get(c => c.Id == id);
+            var company = _unitOfWork.CompanyRepo.Get(c => c.Id == id);
             if (company == null) return NotFound();
 
             return View(company);
@@ -85,7 +85,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [Route("API/[area]/[controller]/GetAll")]
         public ActionResult GetAllApi()
         {
-            var companies = _unitOfWork.CompanyRepository.GetAll();
+            var companies = _unitOfWork.CompanyRepo.GetAll();
             return Json(new { success = true, data = companies });
         }
 
@@ -94,10 +94,10 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public IActionResult DeleteApi(int id)
         {
             if (id == 0) return Json(new { success = false, message = "Invalid Id" });
-            var company = _unitOfWork.CompanyRepository.Get(c => c.Id == id);
+            var company = _unitOfWork.CompanyRepo.Get(c => c.Id == id);
             if (company == null) return Json(new { success = false, message = "Error while deleting" });
 
-            _unitOfWork.CompanyRepository.Delete(company);
+            _unitOfWork.CompanyRepo.Delete(company);
             _unitOfWork.Save();
             return Json(new { success = true, message = "Delete successful" });
         }

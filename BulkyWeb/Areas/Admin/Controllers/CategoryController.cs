@@ -19,7 +19,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            var categories = _unitOfWork.CategoryRepository.GetAll();
+            var categories = _unitOfWork.CategoryRepo.GetAll();
             return View(categories);
         }
 
@@ -33,7 +33,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid) return View();
 
-            _unitOfWork.CategoryRepository.Add(newCategory);
+            _unitOfWork.CategoryRepo.Add(newCategory);
             _unitOfWork.Save();
             TempData["successMessage"] = $"Category {newCategory.Name} created successfuly";
 
@@ -44,7 +44,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             if (id == null || id == 0) return NotFound();
 
-            var category = _unitOfWork.CategoryRepository.Get(c => c.Id == id);
+            var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
             if (category == null) return NotFound();
 
             return View(category);
@@ -55,7 +55,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid) return View();
 
-            _unitOfWork.CategoryRepository.Update(category);
+            _unitOfWork.CategoryRepo.Update(category);
             _unitOfWork.Save();
             TempData["successMessage"] = $"Category {category.Name} updated successfuly";
 
@@ -66,7 +66,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             if (id == null || id == 0) return NotFound();
 
-            var category = _unitOfWork.CategoryRepository.Get(c => c.Id == id);
+            var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
             if (category == null) return NotFound();
 
             return View(category);
@@ -75,10 +75,10 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [HttpPost, ActionName("Delete")]
         public IActionResult DeletePost(int id)
         {
-            var category = _unitOfWork.CategoryRepository.Get(c => c.Id == id);
+            var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
             if (category == null) return NotFound();
 
-            _unitOfWork.CategoryRepository.Delete(category);
+            _unitOfWork.CategoryRepo.Delete(category);
             _unitOfWork.Save();
             TempData["successMessage"] = $"Category {category.Name} deleted successfuly";
 

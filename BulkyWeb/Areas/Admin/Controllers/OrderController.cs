@@ -34,9 +34,9 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public IActionResult Details(int orderId)
         {
             if (orderId == 0) return NotFound();
-            var orderHeader = _unitOfWork.OrderHeaderRepository.Get(oh => oh.Id == orderId, includeProperties: "ApplicationUser");
+            var orderHeader = _unitOfWork.OrderHeaderRepo.Get(oh => oh.Id == orderId, includeProperties: "ApplicationUser");
             if (orderHeader == null) return NotFound();
-            var orderDetails = _unitOfWork.OrderDetailRepository.GetAll(u => u.OrderHeaderId == orderId, includeProperties: "Product");
+            var orderDetails = _unitOfWork.OrderDetailRepo.GetAll(u => u.OrderHeaderId == orderId, includeProperties: "Product");
             if (!orderDetails.Any()) return NotFound();
 
             OrderVM orderVM = new()
@@ -54,7 +54,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderHeaderDB = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == orderVM.OrderHeader.Id);
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
                 if (orderHeaderDB == null) return NotFound();
 
                 orderHeaderDB.Name = orderVM.OrderHeader.Name;
@@ -68,7 +68,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 if (!String.IsNullOrEmpty(orderVM.OrderHeader.Carrier))
                     orderHeaderDB.Carrier = orderVM.OrderHeader.Carrier;
 
-                _unitOfWork.OrderHeaderRepository.Update(orderHeaderDB);
+                _unitOfWork.OrderHeaderRepo.Update(orderHeaderDB);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order Detail updated successfully";
@@ -87,7 +87,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                _unitOfWork.OrderHeaderRepository.UpdateOrderPaymentStatus(orderId, CONST_OrderStatus.InProcess);
+                _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(orderId, CONST_OrderStatus.InProcess);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order Detail is in process";
@@ -108,7 +108,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderHeaderDB = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == orderVM.OrderHeader.Id);
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
                 if (orderHeaderDB == null) return NotFound();
 
                 orderHeaderDB.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
@@ -118,7 +118,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
                     orderHeaderDB.PaymentDueDate = DateTime.Now.AddDays(30);
 
-                _unitOfWork.OrderHeaderRepository.Update(orderHeaderDB);
+                _unitOfWork.OrderHeaderRepo.Update(orderHeaderDB);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order Shipped Successfuly";
@@ -137,7 +137,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderHeaderDB = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == orderVM.OrderHeader.Id);
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
                 if (orderHeaderDB == null) return NotFound();
 
                 if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.Approved)
@@ -151,12 +151,12 @@ namespace BulkyWeb.Areas.Admin.Controllers
                     var stripeRefundService = new RefundService();
                     Refund refund = stripeRefundService.Create((refundOptions));
 
-                    _unitOfWork.OrderHeaderRepository.UpdateOrderPaymentStatus(
+                    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(
                         orderHeaderDB.Id, CONST_OrderStatus.Cancelled, CONST_PaymentStatus.Refunded);
                 }
                 else
                 {
-                    _unitOfWork.OrderHeaderRepository.UpdateOrderPaymentStatus(
+                    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(
                         orderHeaderDB.Id, CONST_OrderStatus.Cancelled, CONST_PaymentStatus.Cancelled);
                 }
                 _unitOfWork.Save();
@@ -177,9 +177,9 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderHeaderDB = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == orderVM.OrderHeader.Id);
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
                 if (orderHeaderDB == null) return NotFound();
-                var orderDetailsDB = _unitOfWork.OrderDetailRepository.GetAll(o => o.OrderHeaderId == orderVM.OrderHeader.Id, includeProperties: "Product");
+                var orderDetailsDB = _unitOfWork.OrderDetailRepo.GetAll(o => o.OrderHeaderId == orderVM.OrderHeader.Id, includeProperties: "Product");
                 if (orderDetailsDB == null) return NotFound();
 
                 var session = PaymentForStripe(new OrderVM { OrderHeader = orderHeaderDB, OrderDetails = orderDetailsDB });
@@ -199,7 +199,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderHeaderDB = _unitOfWork.OrderHeaderRepository.Get(o => o.Id == orderId);
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderId);
                 if (orderHeaderDB == null) return NotFound();
 
                 if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
@@ -209,8 +209,8 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
                     if (stripeSession.PaymentStatus.ToLower() == "paid")
                     {
-                        _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(orderId, stripeSession.Id, stripeSession.PaymentIntentId);
-                        _unitOfWork.OrderHeaderRepository.UpdateOrderPaymentStatus(orderId, paymentStatus: CONST_PaymentStatus.Approved);
+                        _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(orderId, stripeSession.Id, stripeSession.PaymentIntentId);
+                        _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(orderId, paymentStatus: CONST_PaymentStatus.Approved);
                         _unitOfWork.Save();
                     };
                 }
@@ -237,11 +237,11 @@ namespace BulkyWeb.Areas.Admin.Controllers
             IEnumerable<OrderHeader> orderHeaders;
 
             if (User.IsInRole(CONST_Roles.Admin) || User.IsInRole(CONST_Roles.Employee))
-                orderHeaders = _unitOfWork.OrderHeaderRepository.GetAll(includeProperties: "ApplicationUser").ToList();
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(includeProperties: "ApplicationUser").ToList();
             else
             {
                 var userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                orderHeaders = _unitOfWork.OrderHeaderRepository.GetAll(o => o.ApplicationUserId == userId, includeProperties: "ApplicationUser");
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(o => o.ApplicationUserId == userId, includeProperties: "ApplicationUser");
             }
 
             var filteredOrderHeaders = filterStatus switch
@@ -289,7 +289,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             var stripeService = new SessionService();
             Session stripeSession = stripeService.Create(options);
-            _unitOfWork.OrderHeaderRepository.UpdateStripePaymentId(
+            _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(
                 orderVM.OrderHeader.Id, stripeSession.Id, stripeSession.PaymentIntentId);
             _unitOfWork.Save();
 

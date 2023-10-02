@@ -38,6 +38,6 @@ namespace Bulky.Models
         public Category? Category { get; set; }
 
         [ValidateNever]
-        public List<ProductImage> ProductImages { get; set; } = new();
+        public List<ProductImage> Images { get; set; } = new();
     }
 }

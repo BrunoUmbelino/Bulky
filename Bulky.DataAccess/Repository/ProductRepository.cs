@@ -27,6 +27,7 @@ namespace Bulky.DataAccess.Repository
                 productDB.PriceUp100 = product.PriceUp100;
                 productDB.PriceAbove100 = product.PriceAbove100;
                 productDB.CategoryId = product.CategoryId;
+                productDB.Images = product.Images;
 
                 _context.Products.Update(productDB);
             } 

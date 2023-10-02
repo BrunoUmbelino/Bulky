@@ -1,6 +1,7 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace Bulky.DataAccess.Repository
@@ -26,7 +27,7 @@ namespace Bulky.DataAccess.Repository
             IQueryable<T> query = _dbSet.AsNoTracking();
             query = query.Where(filter);
 
-            if (!String.IsNullOrEmpty(includeProperties))
+            if (!string.IsNullOrEmpty(includeProperties))
             {
                 foreach (var prop in includeProperties
                     .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -41,17 +42,18 @@ namespace Bulky.DataAccess.Repository
         public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter = null, string? includeProperties = null)
         {
             IQueryable<T> query = _dbSet;
-
-            if (filter is not null)
+            if (filter != null)
+            {
                 query = query.Where(filter);
-
-            if (!String.IsNullOrEmpty(includeProperties))
-                foreach (var includeProp in includeProperties.Split(
-                   new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            }
+            if (!string.IsNullOrEmpty(includeProperties))
+            {
+                foreach (var includeProp in includeProperties
+                    .Split(new char[] { ',' }, StringSplitOptions.TrimEntries))
                 {
                     query = query.Include(includeProp);
                 }
-
+            }
             return query.ToList();
         }
 

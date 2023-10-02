@@ -88,7 +88,7 @@ app.MapRazorPages();
 string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
     ?? builder.Configuration["AdminPassword"]
     ?? throw new Exception(message: "AdminPassword was not loaded");
-SeedDatabase(adminPassword);
+if (builder.Environment.IsDevelopment()) SeedDatabase(adminPassword);
 
 string? spripeKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? builder.Configuration["Stripe:SecretKey"];
 StripeConfiguration.ApiKey = spripeKey ?? throw new Exception(message: "Stripe Secretkey was not loaded");

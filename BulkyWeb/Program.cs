@@ -6,6 +6,7 @@ using Bulky.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using Stripe;
@@ -50,15 +51,14 @@ builder.Services.AddAuthentication().AddFacebook(options =>
 {
     options.AppId = builder.Configuration["FacebookAuth:AppId"] ?? throw new Exception(message: "FacebookAuth:AppId was not loaded");
     options.AppSecret = facebookAppSecret;
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .WriteTo.Console()
     .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 builder.Logging.AddSerilog();
-
 
 var app = builder.Build();
 

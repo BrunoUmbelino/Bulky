@@ -34,9 +34,9 @@ namespace BulkyWeb.Areas.Admin.Controllers
         public IActionResult Details(int orderId)
         {
             if (orderId == 0) return NotFound();
-            var orderHeader = _unitOfWork.OrderHeaderRepo.Get(oh => oh.Id == orderId, includeProperties: "ApplicationUser");
+            var orderHeader = _unitOfWork.OrderHeaderRepo.Get(oh => oh.Id == orderId, includeProperties: $"{nameof(OrderHeader.ApplicationUser)}");
             if (orderHeader == null) return NotFound();
-            var orderDetails = _unitOfWork.OrderDetailRepo.GetAll(u => u.OrderHeaderId == orderId, includeProperties: "Product");
+            var orderDetails = _unitOfWork.OrderDetailRepo.GetAll(u => u.OrderHeaderId == orderId, includeProperties: $"{nameof(OrderDetail.Product)}");
             if (!orderDetails.Any()) return NotFound();
 
             OrderVM orderVM = new()
@@ -179,7 +179,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
             {
                 var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
                 if (orderHeaderDB == null) return NotFound();
-                var orderDetailsDB = _unitOfWork.OrderDetailRepo.GetAll(o => o.OrderHeaderId == orderVM.OrderHeader.Id, includeProperties: "Product");
+                var orderDetailsDB = _unitOfWork.OrderDetailRepo.GetAll(o => o.OrderHeaderId == orderVM.OrderHeader.Id, includeProperties: $"{nameof(OrderDetail.Product)}");
                 if (orderDetailsDB == null) return NotFound();
 
                 var session = PaymentForStripe(new OrderVM { OrderHeader = orderHeaderDB, OrderDetails = orderDetailsDB });
@@ -192,7 +192,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
                 return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
-            
+
         }
 
         public IActionResult PaymentConfirmation(int orderId)
@@ -223,7 +223,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
                 return RedirectToAction(nameof(Details), new { orderId });
             }
-            
+
         }
 
 
@@ -237,11 +237,11 @@ namespace BulkyWeb.Areas.Admin.Controllers
             IEnumerable<OrderHeader> orderHeaders;
 
             if (User.IsInRole(CONST_Roles.Admin) || User.IsInRole(CONST_Roles.Employee))
-                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(includeProperties: "ApplicationUser").ToList();
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(includeProperties: $"{nameof(OrderHeader.ApplicationUser)}").ToList();
             else
             {
                 var userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(o => o.ApplicationUserId == userId, includeProperties: "ApplicationUser");
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(o => o.ApplicationUserId == userId, includeProperties: $"{nameof(OrderHeader.ApplicationUser)}");
             }
 
             var filteredOrderHeaders = filterStatus switch

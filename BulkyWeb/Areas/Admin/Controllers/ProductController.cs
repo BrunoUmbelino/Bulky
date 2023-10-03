@@ -41,7 +41,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             if (id.HasValue)
             {
-                productVM.Product = _unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: "ProductImages");
+                productVM.Product = _unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: $"{nameof(Product.Images)}");
                 return View(productVM);
             }
 

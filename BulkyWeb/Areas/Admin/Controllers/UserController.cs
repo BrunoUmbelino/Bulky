@@ -1,4 +1,4 @@
-﻿using Bulky.DataAccess.Data;
+﻿using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
 namespace BulkyWeb.Areas.Admin.Controllers
 {
@@ -15,24 +14,29 @@ namespace BulkyWeb.Areas.Admin.Controllers
     public class UserController : Controller
     {
         private readonly ILogger<UserController> _logger;
-        private readonly AppDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public UserController(AppDbContext context, ILogger<UserController> logger, UserManager<IdentityUser> userManager)
+        public UserController(ILogger<UserController> logger, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IUnitOfWork unitOfWork)
         {
-            _context = context;
             _logger = logger;
             _userManager = userManager;
+            _roleManager = roleManager;
+            _unitOfWork = unitOfWork;
         }
+
+
+        #region ACTIONS
 
         public IActionResult Index()
         {
             return View();
         }
 
-        public IActionResult UserRoleManager(string userId)
+        public IActionResult RoleManager(string userId)
         {
-            var user = _context.ApplicationUsers.FirstOrDefault(u => u.Id == userId);
+            var user = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
             if (user == null) return NotFound();
 
             var userVM = new UserRoleVM()
@@ -41,37 +45,41 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 CompanyListItems = PopulateCompanyList(),
                 RoleListItems = PopulateRoleList(),
             };
-            string? userRoleId = _context.UserRoles.FirstOrDefault(r => r.UserId == user.Id)?.RoleId;
-            string? roleName = _context.Roles.FirstOrDefault(r => r.Id == userRoleId)?.Name;
-            if (roleName is not null) userVM.ApplicationUser.Role = roleName;
+            var roleNameList = _userManager.GetRolesAsync(user).GetAwaiter().GetResult();
+            if (roleNameList.Any()) userVM.ApplicationUser.Role = roleNameList.First();
 
             return View(userVM);
         }
 
         [HttpPost]
-        public IActionResult UserRoleManager(UserRoleVM userRoleVM)
+        public IActionResult RoleManager(UserRoleVM userRoleVM)
         {
             try
             {
-                var userRoleId = _context.UserRoles.FirstOrDefault(r => r.UserId == userRoleVM.ApplicationUser.Id)?.RoleId;
-                if (userRoleId == null) return NotFound();
-                var oldRole = _context.Roles.FirstOrDefault(r => r.Id == userRoleId)?.Name;
-                if (oldRole == null) return NotFound();
+                var userDb = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userRoleVM.ApplicationUser.Id);
+                if (userDb == null) return NotFound();
+                var oldRoleName = _userManager.GetRolesAsync(userDb).GetAwaiter().GetResult().First();
+                if (oldRoleName == null) return NotFound();
 
-                if (oldRole != userRoleVM.ApplicationUser.Role){
-                    _userManager.RemoveFromRoleAsync(userRoleVM.ApplicationUser, oldRole).GetAwaiter().GetResult();
+                if (oldRoleName != userRoleVM.ApplicationUser.Role)
+                {
+                    _userManager.RemoveFromRoleAsync(userRoleVM.ApplicationUser, oldRoleName).GetAwaiter().GetResult();
                     _userManager.AddToRoleAsync(userRoleVM.ApplicationUser, userRoleVM.ApplicationUser.Role).GetAwaiter().GetResult();
                 }
 
-                var userDb = _context.ApplicationUsers.FirstOrDefault(u => u.Id == userRoleVM.ApplicationUser.Id);
-                if (userDb == null) return NotFound();
-                
-                if (userRoleVM.ApplicationUser.Role == CONST_Roles.Company)
+                if (userRoleVM.ApplicationUser.Role == CONST_Roles.Company 
+                    && userRoleVM.ApplicationUser.CompanyId != userDb.CompanyId)
+                {
                     userDb.CompanyId = userRoleVM.ApplicationUser.CompanyId;
-                else
+                    _unitOfWork.ApplicationUserRepo.Update(userDb);
+                    _unitOfWork.Save();
+                }
+                if (userRoleVM.ApplicationUser.Role != CONST_Roles.Company)
+                {
                     userDb.CompanyId = null;
-
-                _context.SaveChanges();
+                    _unitOfWork.ApplicationUserRepo.Update(userDb);
+                    _unitOfWork.Save();
+                }
 
                 TempData["successMessage"] = "User role updated successfuly.";
                 userRoleVM.RoleListItems = PopulateRoleList();
@@ -86,25 +94,21 @@ namespace BulkyWeb.Areas.Admin.Controllers
             }
         }
 
-        #region API 
+        #endregion
+
+
+        #region API's
 
         [HttpGet]
         [Route("API/[area]/[controller]/GetAll")]
         public IActionResult GetAll()
         {
-            var users = _context.ApplicationUsers.Include(au => au.Company).ToList();
+            var users = _unitOfWork.ApplicationUserRepo.GetAll(includeProperties: $"{nameof(ApplicationUser.Company)}");
             if (users == null) return NotFound();
-
-            var identityRoles = _context.Roles.ToList();
-            if (identityRoles == null) return NotFound();
-
-            var identityUsersAndRoles = _context.UserRoles.ToList();
-            if (identityUsersAndRoles == null) return NotFound();
 
             foreach (var user in users)
             {
-                var userRoleId = identityUsersAndRoles.FirstOrDefault(u => u.UserId == user.Id)?.RoleId;
-                user.Role = identityRoles.FirstOrDefault(u => u.Id == userRoleId)?.Name ?? "";
+                user.Role = _userManager.GetRolesAsync(user).GetAwaiter().GetResult().First();
                 user.Company ??= new Company() { Name = "" };
             }
 
@@ -117,16 +121,18 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var userDb = _context.ApplicationUsers.FirstOrDefault(u => u.Id == id);
+                var userDb = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == id);
                 if (userDb == null)
                     return Json(new { success = false, message = "User not found" });
 
                 var userIsLocked = userDb.LockoutEnd != null && userDb.LockoutEnd > DateTime.Now;
                 if (userIsLocked) userDb.LockoutEnd = DateTime.Now;
                 else userDb.LockoutEnd = DateTime.Now.AddYears(1000);
-                _context.SaveChanges();
+                
+                _unitOfWork.ApplicationUserRepo.Update(userDb);
+                _unitOfWork.Save();
 
-                var message = userIsLocked ? "Account UNLOCK successfully" : "Account LOCKED successfully";
+                var message = userIsLocked ? $"Account {userDb.Email} (UNLOCK) successfully." : $"Account {userDb.Email} (LOCKED) successfully.";
                 return Json(new { success = true, message });
             }
             catch (Exception ex)
@@ -138,9 +144,12 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         #endregion
 
+
+        #region PRIVATE FUNCIONS
+
         private IEnumerable<SelectListItem> PopulateRoleList()
         {
-            return _context.Roles.ToList().Select(c => new SelectListItem()
+            return _roleManager.Roles.ToList().Select(c => new SelectListItem()
             {
                 Text = c.Name,
                 Value = c.Name,
@@ -149,11 +158,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         private IEnumerable<SelectListItem> PopulateCompanyList()
         {
-            return _context.Companies.ToList().Select(c => new SelectListItem()
+            return _unitOfWork.CompanyRepo.GetAll().Select(c => new SelectListItem()
             {
                 Text = c.Name,
                 Value = c.Id.ToString(),
             });
         }
+
+        #endregion
     }
 }

@@ -1,9 +1,7 @@
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
-using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -24,22 +22,23 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         public IActionResult Index()
         {
-            var userIdFromIdentity = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userIdFromIdentity is not null)
+            var userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId is not null)
             {
-                var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == userIdFromIdentity)?.Count();
-                if (cartItemsQuantity is not null)
-                    HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+                var quantityCartItems = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == userId)?.Count();
+                if (quantityCartItems is not null) HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)quantityCartItems);
             }
 
-            var products = _unitOfWork.ProductRepository.GetAll(includeProperties: "Category");
+            var products = _unitOfWork.ProductRepo.GetAll(
+                includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}");
             return View(products);
         }
 
         public IActionResult Details(int productId)
         {
             if (productId == 0) return NotFound();
-            var product = _unitOfWork.ProductRepository.Get(p => p.Id == productId, includeProperties: "Category");
+            var product = _unitOfWork.ProductRepo.Get(p => p.Id == productId, 
+                includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}");
             if (product == null) return NotFound();
 
             ShoppingCartItem shoppingCart = new()
@@ -63,14 +62,14 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 string? userIdFromIdentity = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 shoppingCart.ApplicationUserId = userIdFromIdentity;
 
-                ShoppingCartItem shoppingCartFromDb = _unitOfWork.ShoppingCartRepository
+                ShoppingCartItem shoppingCartFromDb = _unitOfWork.ShoppingCartRepo
                     .Get(sc => sc.ApplicationUserId == userIdFromIdentity && sc.ProductId == shoppingCart.ProductId);
 
                 if (shoppingCartFromDb == null)
                 {
-                    _unitOfWork.ShoppingCartRepository.Add(shoppingCart);
+                    _unitOfWork.ShoppingCartRepo.Add(shoppingCart);
                     _unitOfWork.Save();
-                    var cartItemsQuantity = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == userIdFromIdentity)?.Count();
+                    var cartItemsQuantity = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == userIdFromIdentity)?.Count();
                     if (cartItemsQuantity is not null)
                         HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
 
@@ -78,7 +77,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 else
                 {
                     shoppingCartFromDb.Count += shoppingCart.Count;
-                    _unitOfWork.ShoppingCartRepository.Update(shoppingCartFromDb);
+                    _unitOfWork.ShoppingCartRepo.Update(shoppingCartFromDb);
                     _unitOfWork.Save();
                 }
 
@@ -93,15 +92,15 @@ namespace BulkyWeb.Areas.Customer.Controllers
             }
         }
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
         }
     }
 }

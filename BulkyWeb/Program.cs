@@ -6,16 +6,14 @@ using Bulky.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Serilog;
-using Serilog.Events;
 using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
-    builder.Configuration.GetConnectionString("AppConnection") 
+    builder.Configuration.GetConnectionString("AppConnection")
     ?? throw new Exception(message: "ConnectionString was not loaded")));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
@@ -44,8 +42,9 @@ builder.Services.AddSession(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-string facebookAppSecret = Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET") 
-    ?? builder.Configuration["FacebookAuth:AppSecret"] 
+string facebookAppSecret = 
+    Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET")
+    ?? builder.Configuration["FacebookAuth:AppSecret"]
     ?? throw new Exception(message: "FacebookAuth:AppSecret was not loaded");
 builder.Services.AddAuthentication().AddFacebook(options =>
 {
@@ -85,10 +84,14 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
-    ?? builder.Configuration["AdminPassword"]
-    ?? throw new Exception(message: "AdminPassword was not loaded");
-if (builder.Environment.IsDevelopment()) SeedDatabase(adminPassword);
+if (builder.Environment.IsDevelopment())
+{
+    string adminPassword = 
+        Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+        ?? builder.Configuration["AdminPassword"]
+        ?? throw new Exception(message: "AdminPassword was not loaded");
+    SeedDatabase(adminPassword);
+}
 
 string? spripeKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? builder.Configuration["Stripe:SecretKey"];
 StripeConfiguration.ApiKey = spripeKey ?? throw new Exception(message: "Stripe Secretkey was not loaded");

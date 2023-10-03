@@ -70,16 +70,8 @@ namespace BulkyWeb.Areas.Admin.Controllers
             }
             _unitOfWork.Save();
 
-            if (files != null)
-            {
-                //if (!productVM.Product.ImageUrl.IsNullOrEmpty())
-                //{
-                //    DeleteProductImageIfExist(productVM.Product.ImageUrl, wwwRootPath);
-                //}
-
-
-                SaveProductImagesAndFiles(files, productVM.Product);
-            }
+            if (files != null) SaveProductImagesAndFiles(files, productVM.Product);
+            
 
             _unitOfWork.Save();
             TempData["successMessage"] = $"Product {productVM.Product.Title} {actionMessage} successfuly";

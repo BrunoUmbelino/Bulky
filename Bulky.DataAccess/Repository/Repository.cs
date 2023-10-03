@@ -1,7 +1,6 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace Bulky.DataAccess.Repository
@@ -30,7 +29,7 @@ namespace Bulky.DataAccess.Repository
             if (!string.IsNullOrEmpty(includeProperties))
             {
                 foreach (var prop in includeProperties
-                    .Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    .Split(new char[] { ',' }, StringSplitOptions.TrimEntries))
                 {
                     query = query.Include(prop);
                 }

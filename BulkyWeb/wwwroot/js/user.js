@@ -24,7 +24,7 @@ function LoadDataTable() {
                                     class="btn btn-success rounded role="button" style="width: 130px">
                                     <i class="bi bi-unlock-fill"></i> Unlock
                                </a>
-                               <a href="/Admin/User/UserRoleManager/?userId=${data.id}"
+                               <a href="/Admin/User/RoleManager/?userId=${data.id}"
                                     class="btn btn-warning rounded" role="button" style="width: 130px">
                                     <i class="bi bi-pencil-square"></i> Permissions
                                 </a>
@@ -37,7 +37,7 @@ function LoadDataTable() {
                                     class="btn btn-dark rounded role="button" style="width: 130px">
                                     <i class="bi bi-lock-fill"></i> Lock
                                 </a>
-                                <a href="/Admin/User/UserRoleManager/?userId=${data.id}"
+                                <a href="/Admin/User/RoleManager/?userId=${data.id}"
                                     class="btn btn-warning rounded" role="button" style="width: 130px">
                                     <i class="bi bi-pencil-square"></i> Permissions
                                 </a>

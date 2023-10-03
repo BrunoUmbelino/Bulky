@@ -24,7 +24,7 @@ namespace BulkyWeb.ViewComponents
             }
             else
             {
-                var QuatityOfItensInCart = _unitOfWork.ShoppingCartRepository.GetAll(s => s.ApplicationUserId == userId)?.Count();
+                var QuatityOfItensInCart = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == userId)?.Count();
                 if (QuatityOfItensInCart == null)
                     HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, 0);
                 else

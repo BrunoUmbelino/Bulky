@@ -101,11 +101,11 @@ void SeedDatabase()
         var dbInitializer = scope.ServiceProvider.GetService<IDbInitializer>();
         dbInitializer?.RunMigrations();
 
-        //string adminPassword =
-        //    Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-        //    ?? builder.Configuration["AdminPassword"]
-        //    ?? throw new Exception(message: "AdminPassword was not loaded");
-        //dbInitializer?.SeedRoles(adminPassword);
+        string adminPassword =
+            Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+            ?? builder.Configuration["AdminPassword"]
+            ?? throw new Exception(message: "AdminPassword was not loaded");
+        dbInitializer?.SeedRoles(adminPassword);
     }
 }
 

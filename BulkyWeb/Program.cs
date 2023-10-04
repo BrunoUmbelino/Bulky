@@ -42,7 +42,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-string facebookAppSecret = 
+string facebookAppSecret =
     Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET")
     ?? builder.Configuration["FacebookAuth:AppSecret"]
     ?? throw new Exception(message: "FacebookAuth:AppSecret was not loaded");
@@ -84,14 +84,7 @@ app.MapControllerRoute(
 
 app.MapRazorPages();
 
-if (builder.Environment.IsDevelopment())
-{
-    string adminPassword = 
-        Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-        ?? builder.Configuration["AdminPassword"]
-        ?? throw new Exception(message: "AdminPassword was not loaded");
-    SeedDatabase(adminPassword);
-}
+SeedDatabase();
 
 string? spripeKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? builder.Configuration["Stripe:SecretKey"];
 StripeConfiguration.ApiKey = spripeKey ?? throw new Exception(message: "Stripe Secretkey was not loaded");
@@ -101,12 +94,18 @@ app.Run();
 
 #region PRIVATE METHODS
 
-void SeedDatabase(string adminUserPassword)
+void SeedDatabase()
 {
     using (var scope = app.Services.CreateScope())
     {
         var dbInitializer = scope.ServiceProvider.GetService<IDbInitializer>();
-        dbInitializer?.Initialize(adminUserPassword);
+        dbInitializer?.RunMigrations();
+
+        string adminPassword =
+            Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+            ?? builder.Configuration["AdminPassword"]
+            ?? throw new Exception(message: "AdminPassword was not loaded");
+        dbInitializer?.SeedRoles(adminPassword);
     }
 }
 

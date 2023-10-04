@@ -2,6 +2,7 @@
 {
     public interface IDbInitializer
     {
-        void Initialize(string adminPassword);
+        void RunMigrations();
+        void SeedRoles(string adminPassword);
     }
 }

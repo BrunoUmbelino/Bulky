@@ -22,7 +22,7 @@ namespace Bulky.DataAccess.DbInitializer
             _logger = logger;
         }
 
-        public void Initialize(string adminUserPassword)
+        public void RunMigrations()
         {
             try
             {
@@ -36,7 +36,10 @@ namespace Bulky.DataAccess.DbInitializer
                 _logger.LogError(message: ex.Message, ex);
                 throw;
             }
+        }
 
+        public void SeedRoles(string adminUserPassword)
+        {
             try
             {
                 if (!_roleManager.RoleExistsAsync(CONST_Roles.Customer).GetAwaiter().GetResult())

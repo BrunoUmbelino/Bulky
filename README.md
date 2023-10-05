@@ -11,3 +11,8 @@ Este projeto tem o proposito de aprendizado e foi desenvolvido junto a realizaç
 * Sql Server + Entity Framework Core
 * Razor Pages + JavaScript/Jquery com DataTables e Toastr
 * Identity Framework
+
+### TODO
+
+* Refatorar modelos
+* Adicionar testes automatizados

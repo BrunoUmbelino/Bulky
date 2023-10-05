@@ -9,7 +9,6 @@ namespace Bulky.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(30)]
         [DisplayName("Category Name")]
         public string Name { get; set; } = string.Empty;
 

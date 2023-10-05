@@ -9,13 +9,13 @@ namespace Bulky.Models
         [Key]
         public int Id { get; set; }
         
-        [Required] [MaxLength(30)] 
+        [Required]
         public string Title { get; set; } = string.Empty;
         
         public string Description { get; set; } = string.Empty;
         
-        [Required] 
-        public string ISBN { get; set; } = string.Empty;
+        [Required] [Display(Name = "ISBN-10")]
+        public string ISBN13 { get; set; } = string.Empty;
         
         [Required] 
         public string Author { get; set; } = string.Empty;

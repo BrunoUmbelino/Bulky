@@ -6,10 +6,10 @@ function LoadDataTable() {
     dataTable = $('#ProductTable').DataTable({
         "ajax": { url: "/admin/api/product/getall" },
         "columns": [
-            { data: "title", "width": "20%" },
-            { data: "isbn", "width": "15%" },
-            { data: "author", "width": "20%" },
-            { data: "listPrice", "width": "10%" },
+            { data: "title", "width": "30%" },
+            { data: "author", "width": "15%" },
+            { data: "listPrice", "width": "10%", render: $.fn.dataTable.render.number(',', '.', 2, 'R$ ') },
+            { data: "isbN13", "width": "15%", },
             { data: "category.name", width: "15%" },
             {
                 data: "id",

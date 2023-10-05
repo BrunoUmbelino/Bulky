@@ -20,7 +20,7 @@ namespace Bulky.DataAccess.Repository
             {
                 productDB.Title = product.Title;
                 productDB.Description = product.Description;
-                productDB.ISBN = product.ISBN;
+                productDB.ISBN13 = product.ISBN13;
                 productDB.Author = product.Author;
                 productDB.ListPrice = product.ListPrice;
                 productDB.PriceUp50 = product.PriceUp50;

@@ -20,45 +20,45 @@
                     <a asp-area="Customer" asp-controller="Home" asp-action="Index"
                        class="btn btn-outline-info text-uppercase mb-5 btn-sm"><small>Continue Shopping</small></a>
                 </div>
-                <div class="col-md-10 offset-md-1">
+                <div class="container-fluid">
 
                     @foreach (var cartItem in Model.ShoppingCartItems)
                     {
-                        <div class="row border-bottom pb-3">
-                            <div class="col-12 d-none d-lg-block col-lg-1 text-center py-2">
+                        <div class="row border-bottom py-3">
+                            <div class="col-3 text-center py-2">
                                 @if (cartItem.Product != null && cartItem.Product.Images.Any())
                                 {
-                                    <img src="@cartItem.Product.Images.First().ImageUrl" class="card-img-top rounded w-100" />
+                                    <img src="@cartItem.Product.Images.First().ImageUrl" class="card-img-top rounded w-100" style="max-width: 500px" />
                                 }
                                 else
                                 {
-                                    <img src="https://placehold.co/500x600/png" />
+                                    <img src="https://placehold.co/100x100/png" />
                                 }
                             </div>
-                            <div class="col-12 col-lg-6 pt-md-3">
+                            <div class="col-5">
                                 <h5 class="text-uppercase text-primary"><strong>@cartItem.Product?.Title</strong></h5>
                                 <p><small>@Html.Raw(@cartItem.Product?.Description)</small></p>
                             </div>
-                            <div class="col-12  col-lg-5 text-center row">
-                                <div class="col-3 text-md-right pt-2 pt-md-4">
+                            <div class="col text-center row">
+                                <div class="col text-md-right pt-2 pt-md-4">
                                     <h6 class="fw-semibold">
                                         @cartItem.Price.ToString("c")
-                                        <span class="text-muted">&nbsp;x&nbsp;</span>@cartItem.Count
+                                        <span class="text-primary">&nbsp;x&nbsp;</span>@cartItem.Count
                                     </h6>
                                 </div>
-                                <div class="col-6 col-sm-4 col-lg-6 pt-2">
+                                <div class="col pt-2">
                                     <div class="w-75 btn-group" role="group">
                                         <a asp-action="plusCartItem" asp-route-cartItemId="@cartItem.Id"
                                            class="btn btn-outline-primary bg-gradient rounded">
-                                            <i class="bi bi-plus-square-fill"></i>
+                                            <i class="bi bi-plus-lg"></i>
                                         </a> &nbsp;
                                         <a asp-action="minusCartItem" asp-route-cartItemId="@cartItem.Id"
                                            class="btn btn-outline-primary bg-gradient rounded">
-                                            <i class="bi bi-dash-square-fill"></i>
+                                            <i class="bi bi-dash-lg"></i>
                                         </a>
                                     </div>
                                 </div>
-                                <div class="col-3 col-sm-4 col-lg-2 offset-lg-1 text-right pt-2">
+                                <div class="col text-right pt-2">
                                     <a asp-action="removeCartItem" asp-route-cartItemId="@cartItem.Id"
                                        class="btn btn-danger bg-gradient py-2 ">
                                         <i class="bi bi-trash-fill"></i>
@@ -67,6 +67,7 @@
                             </div>
                         </div>
                     }
+
                 </div>
             </div>
             <div class="card-footer bg-white border-0">

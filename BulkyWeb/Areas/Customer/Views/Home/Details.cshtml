@@ -102,9 +102,16 @@
                             </div>
                         </div>
                         <div class="row pl-4 my-3">
-                            <p class="lh-sm">
-                                <span class="text-secondary">Synopsis:</span>@Html.Raw(@Model.Product?.Description)
-                            </p>
+                            <div class="product-description">
+                                <span class="text-secondary">Synopsis:</span>
+                                <div class="short-description">
+                                    @Html.Raw(@Model.Product?.Description)
+                                </div>
+                                <div class="full-description" style="display: none;">
+                                    @Html.Raw(Model.Product?.Description)
+                                </div>
+                                <a href="#" class="read-more">Ler mais</a>
+                            </div>
                         </div>
                         <div class="row pl-2 mb-3">
                             <div class="col-md-4">
@@ -135,6 +142,32 @@
 </form>
 
 @section Scripts{
+    <script>
+        $(document).ready(function () {
+            $(document).ready(function () {
+                var $shortDescription = $(".short-description");
+                var $fullDescription = $(".full-description");
+                var $readMore = $(".read-more");
+
+                var charLimit = 1200;
+
+                // Verifique se a descrição curta precisa ser truncada
+                var shortDescriptionHtml = $shortDescription.html();
+                if (shortDescriptionHtml.length > charLimit) {
+                    var truncatedHtml = shortDescriptionHtml.substring(0, charLimit) + "...";
+                    $shortDescription.html(truncatedHtml);
+                    $readMore.show();
+                }
+
+                // Manipule o clique no link "Ler mais"
+                $readMore.click(function (e) {
+                    e.preventDefault();
+                    $shortDescription.toggle();
+                    $fullDescription.toggle();
+                });
+            });
+        });
+    </script>
     @{
         <partial name="_ValidationScriptsPartial" />
     }

@@ -28,7 +28,7 @@
                             <div class="col-3 text-center py-2">
                                 @if (cartItem.Product != null && cartItem.Product.Images.Any())
                                 {
-                                    <img src="@cartItem.Product.Images.First().ImageUrl" class="card-img-top rounded w-100" style="max-width: 500px" />
+                                    <img src="@cartItem.Product.Images.First().ImageUrl" class="card-img-top rounded w-100" style="max-width: 400px; max-height:300px;" />
                                 }
                                 else
                                 {
@@ -37,7 +37,16 @@
                             </div>
                             <div class="col-5">
                                 <h5 class="text-uppercase text-primary"><strong>@cartItem.Product?.Title</strong></h5>
-                                <p><small>@Html.Raw(@cartItem.Product?.Description)</small></p>
+                                <div class="product-description">
+                                    <span class="text-secondary">Synopsis:</span>
+                                    <div class="short-description">
+                                        @Html.Raw(@cartItem.Product?.Description)
+                                    </div>
+                                    <div class="full-description" style="display: none;">
+                                        @Html.Raw(@cartItem.Product?.Description)
+                                    </div>
+                                    <a href="#" class="read-more">Ler mais</a>
+                                </div>
                             </div>
                             <div class="col text-center row">
                                 <div class="col text-md-right pt-2 pt-md-4">
@@ -91,3 +100,32 @@
         </div>
     </div>
 </form>
+
+@section Scripts{
+    <script>
+        $(document).ready(function () {
+            $(document).ready(function () {
+                var $shortDescription = $(".short-description");
+                var $fullDescription = $(".full-description");
+                var $readMore = $(".read-more");
+
+                var charLimit = 400;
+
+                // Verifique se a descrição curta precisa ser truncada
+                var shortDescriptionHtml = $shortDescription.html();
+                if (shortDescriptionHtml.length > charLimit) {
+                    var truncatedHtml = shortDescriptionHtml.substring(0, charLimit) + "...";
+                    $shortDescription.html(truncatedHtml);
+                    $readMore.show();
+                }
+
+                // Manipule o clique no link "Ler mais"
+                $readMore.click(function (e) {
+                    e.preventDefault();
+                    $shortDescription.toggle();
+                    $fullDescription.toggle();
+                });
+            });
+        });
+    </script>
+}

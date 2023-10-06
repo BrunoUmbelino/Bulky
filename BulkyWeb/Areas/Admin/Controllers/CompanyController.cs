@@ -1,5 +1,7 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
+﻿using AutoMapper;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,42 +12,49 @@ namespace BulkyWeb.Areas.Admin.Controllers
     [Authorize(Roles = CONST_Roles.Admin)]
     public class CompanyController : Controller
     {
+        private readonly ILogger<CompanyController> _logger;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CompanyController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
+        public CompanyController(IUnitOfWork unitOfWork, ILogger<CompanyController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
+            _mapper = mapper;
         }
 
         #region ACTIONS
 
-        // GET: CompanyController
         public ActionResult Index()
         {
-            var companies = _unitOfWork.CompanyRepo.GetAll();
-            return View(companies);
+            return View();
         }
 
-        // GET: CompanyController/Upsert
         public ActionResult Upsert(int id)
         {
-            if (id == 0) return NotFound();
-            var company = _unitOfWork.CompanyRepo.Get(c => c.Id == id);
-            if (company == null) return NotFound();
+            CompanyVM companyVM = new();
+            if (id == 0)
+                return View(companyVM);
+            companyVM = _mapper.Map<CompanyVM>(_unitOfWork.CompanyRepo.Get(c => c.Id == id, includeProperties: nameof(Company.Address)));
+            if (companyVM == null)
+            {
+                TempData["errorMessage"] = $"Resource not found.";
+                return RedirectToAction(nameof(Index));
+            }
 
-            return View(company);
+            return View(companyVM);
         }
 
-        // POST: CompanyController/Upsert
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Upsert(Company company)
+        public ActionResult Upsert(CompanyVM companyVM)
         {
             try
             {
-                if (!ModelState.IsValid) return View(company);
+                if (!ModelState.IsValid) return View(companyVM);
 
-                string? messageAction = null;
+                string? messageAction;
+                var company = _mapper.Map<Company>(companyVM); 
                 if (company.Id == 0)
                 {
                     messageAction = "create";
@@ -56,25 +65,17 @@ namespace BulkyWeb.Areas.Admin.Controllers
                     messageAction = "update";
                     _unitOfWork.CompanyRepo.update(company);
                 }
-
                 _unitOfWork.Save();
+
                 TempData["successMessage"] = $"Company {company.Name} {messageAction} successfully";
                 return RedirectToAction("Index");
             }
-            catch
+            catch(Exception ex)
             {
-                return View(company);
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                _logger.LogError(0, ex, "Erro no processo de UPSERT de Company");
+                return RedirectToAction(nameof(Index));
             }
-        }
-
-        // GET: CompanyController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            if (id == 0) return NotFound();
-            var company = _unitOfWork.CompanyRepo.Get(c => c.Id == id);
-            if (company == null) return NotFound();
-
-            return View(company);
         }
 
         #endregion
@@ -85,7 +86,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [Route("API/[area]/[controller]/GetAll")]
         public ActionResult GetAllApi()
         {
-            var companies = _unitOfWork.CompanyRepo.GetAll();
+            var companies = _unitOfWork.CompanyRepo.GetAll(includeProperties: nameof(Company.Address));
             return Json(new { success = true, data = companies });
         }
 
@@ -99,7 +100,8 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             _unitOfWork.CompanyRepo.Delete(company);
             _unitOfWork.Save();
-            return Json(new { success = true, message = "Delete successful" });
+
+            return Json(new { success = true, message = $"Company {company.Name} was successfully deleted" });
         }
 
         #endregion

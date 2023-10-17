@@ -1,10 +1,11 @@
-﻿@model IEnumerable<Product>
+﻿@model IEnumerable<ProductVM>
 
 @{
     ViewData["Title"] = "Home";
 }
 
-<div class="row pb-3">
+<div class="row pb-3"> 
+    
     @foreach (var product in Model)
     {
         <div class="col-lg-3 col-sm-6">
@@ -30,12 +31,12 @@
                             </div>
                             <div class="pl-1">
                                 <p class="text-dark text-opacity-75 text-center m-0">
-                                    <span class="text-decoration-line-through">@product.ListPrice.ToString("c")</span>
+                                    <span class="text-decoration-line-through">@Model. PriceList.ToString("c")</span>
                                 </p>
                             </div>
                             <div class="pl-1">
                                 <p class="text-dark text- text-center m-0">
-                                    As low as: <span>@product.PriceAbove100.ToString("c")</span>
+                                    As low as: <span>@product.PriceOver100.ToString("c")</span>
                                 </p>
                             </div>
                         </div>

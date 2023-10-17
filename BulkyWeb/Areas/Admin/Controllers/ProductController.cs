@@ -1,11 +1,13 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.IdentityModel.Tokens; 
+using Microsoft.IdentityModel.Tokens;
 
 namespace BulkyWeb.Areas.Admin.Controllers
 {
@@ -15,11 +17,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IMapper _mapper;
 
-        public ProductController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
+        public ProductController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _webHostEnvironment = webHostEnvironment;
+            _mapper = mapper;
         }
 
 
@@ -41,43 +45,44 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
             if (id.HasValue)
             {
-                productVM.Product = _unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: $"{nameof(Product.Images)}");
+                productVM = (_unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: $"{nameof(Product.Images)}")as IQueryable)
+                    .ProjectTo<ProductVM>(_mapper.ConfigurationProvider).FirstOrDefault();
                 return View(productVM);
             }
 
             return View(productVM);
         }
 
-        [HttpPost]
-        public IActionResult Upsert(ProductVM productVM, List<IFormFile>? files)
-        {
-            if (!ModelState.IsValid)
-            {
-                productVM.CategoryList = PopulateCategoryList();
-                return View(productVM);
-            }
+        //[HttpPost]
+        //public IActionResult Upsert(ProductVM productVM, List<IFormFile>? files)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        productVM.CategoryList = PopulateCategoryList();
+        //        return View(productVM);
+        //    }
 
-            string actionMessage;
-            if (productVM.Product.Id == 0)
-            {
-                _unitOfWork.ProductRepo.Add(productVM.Product);
-                actionMessage = "created";
-            }
-            else
-            {
-                _unitOfWork.ProductRepo.Update(productVM.Product);
-                actionMessage = "updated";
-            }
-            _unitOfWork.Save();
+        //    string actionMessage;
+        //    if (productVM.Id == 0)
+        //    {
+        //        _unitOfWork.ProductRepo.Add(productVM);
+        //        actionMessage = "created";
+        //    }
+        //    else
+        //    {
+        //        _unitOfWork.ProductRepo.Update(productVM);
+        //        actionMessage = "updated";
+        //    }
+        //    _unitOfWork.Save();
 
-            if (files != null) SaveProductImagesAndFiles(files, productVM.Product);
-            
+        //    if (files != null) SaveProductImagesAndFiles(files, productVM);
 
-            _unitOfWork.Save();
-            TempData["successMessage"] = $"Product {productVM.Product.Title} {actionMessage} successfuly";
 
-            return RedirectToAction("Index");
-        }
+        //    _unitOfWork.Save();
+        //    TempData["successMessage"] = $"Product {productVM.Title} {actionMessage} successfuly";
+
+        //    return RedirectToAction("Index");
+        //}
 
         public IActionResult Delete(int? id)
         {
@@ -105,7 +110,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult DeleteImage(int imageId)
         {
-            var image = _unitOfWork.ProductImageRepo.Get(i=>i.Id == imageId);
+            var image = _unitOfWork.ProductImageRepo.Get(i => i.Id == imageId);
             if (image == null || image.ImageUrl.IsNullOrEmpty())
             {
                 TempData["errorMessage"] = "Resource not found";
@@ -180,7 +185,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 });
         }
 
-        private void SaveProductImagesAndFiles(List<IFormFile> files, Product product)
+        private void SaveProductImagesAndFiles(List<IFormFile> files, ProductVM product)
         {
             var wwwRootPath = _webHostEnvironment.WebRootPath;
 
@@ -199,10 +204,10 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 product.Images.Add(new ProductImage()
                 {
                     ImageUrl = @$"\{productPath}\{newFileName}",
-                    ProductId = product.Id
-                });
+                    ProductId = product.Id ?? 0
+                }) ; ;
 
-                _unitOfWork.ProductRepo.Update(product);
+                //_unitOfWork.ProductRepo.Update(product);
                 _unitOfWork.Save();
             }
         }

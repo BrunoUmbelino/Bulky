@@ -1,4 +1,4 @@
-﻿@model Product
+﻿@model ProductVM
 
 <div class="card shadow mt-4 rounded-2">
     <div class="card-header bg-primary text-light py-3">
@@ -33,24 +33,24 @@
                     <span asp-validation-for="Author" class="text-danger"></span>
                 </div>
                 <div class="row p-1 mb-2">
-                    <label asp-for="ListPrice" class="p-0"></label>
-                    <input asp-for="ListPrice" type="number" class="form-control shadow" disabled />
-                    <span asp-validation-for="ListPrice" class="text-danger"></span>
+                    <label asp-for="PriceList" class="p-0"></label>
+                    <input asp-for="PriceList" type="number" class="form-control shadow" disabled />
+                    <span asp-validation-for="PriceList" class="text-danger"></span>
                 </div>
                 <div class="row p-1 mb-2">
-                    <label asp-for="PriceUp50" class="p-0"></label>
-                    <input asp-for="PriceUp50" type="number" class="form-control shadow" disabled />
-                    <span asp-validation-for="PriceUp50" class="text-danger"></span>
+                    <label asp-for="PriceStandart" class="p-0"></label>
+                    <input asp-for="PriceStandart" type="number" class="form-control shadow" disabled />
+                    <span asp-validation-for="PriceStandart" class="text-danger"></span>
                 </div>
                 <div class="row p-1 mb-2">
-                    <label asp-for="PriceUp100" class="p-0"></label>
-                    <input asp-for="PriceUp100" type="number" class="form-control shadow" disabled />
-                    <span asp-validation-for="PriceUp100" class="text-danger"></span>
+                    <label asp-for="PriceOver50" class="p-0"></label>
+                    <input asp-for="PriceOver50" type="number" class="form-control shadow" disabled />
+                    <span asp-validation-for="PriceOver50" class="text-danger"></span>
                 </div>
                 <div class="row p-1 mb-2">
-                    <label asp-for="PriceAbove100" class="p-0"></label>
-                    <input asp-for="PriceAbove100" type="number" class="form-control shadow" disabled />
-                    <span asp-validation-for="PriceAbove100" class="text-danger"></span>
+                    <label asp-for="PriceOver100" class="p-0"></label>
+                    <input asp-for="PriceOver100" type="number" class="form-control shadow" disabled />
+                    <span asp-validation-for="PriceOver100" class="text-danger"></span>
                 </div>
             </div>
             <div class="row">

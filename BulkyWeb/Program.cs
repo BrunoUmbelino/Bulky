@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Stripe;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();

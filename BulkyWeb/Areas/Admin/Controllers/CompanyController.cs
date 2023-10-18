@@ -27,7 +27,12 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public ActionResult Index()
         {
+<<<<<<< HEAD
             return View();
+=======
+            var companiesVM = _unitOfWork.CompanyRepo.GetAll().Select(c=>_mapper.Map<CategoryVM>(c));
+            return View(companiesVM);
+>>>>>>> e3132a7 (.)
         }
 
         public ActionResult Upsert(int id)

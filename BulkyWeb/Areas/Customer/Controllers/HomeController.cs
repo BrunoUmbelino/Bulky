@@ -3,7 +3,6 @@ using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -36,9 +35,15 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
             var productsVM = _unitOfWork.ProductRepo
                 .GetAll(includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}")
+<<<<<<< HEAD
                 .Select(p => _mapper.Map<ProductVM>(p))
                 .ToList();
 
+=======
+                .Select(p=> _mapper.Map<ProductVM>(p))
+                .ToList();
+      
+>>>>>>> e3132a7 (.)
             return View(productsVM);
         }
 

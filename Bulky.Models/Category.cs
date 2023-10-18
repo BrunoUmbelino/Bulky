@@ -9,7 +9,11 @@ namespace Bulky.Models
         public int Id { get; set; }
 
         [Required]
+<<<<<<< HEAD
         [MaxLength(200)]
+=======
+        [StringLength(200)]
+>>>>>>> e3132a7 (.)
         public string Name { get; set; } = string.Empty;
 
         [Column(TypeName = "tinyint")]

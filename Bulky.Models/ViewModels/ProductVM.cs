@@ -42,7 +42,11 @@ namespace Bulky.Models.ViewModels
         [Required]
         [Display(Name = "Price for 100 units or more")]
         [DataType(DataType.Currency)]
+<<<<<<< HEAD
         public decimal Price100More { get; set; } 
+=======
+        public decimal PriceOver100 { get; set; } 
+>>>>>>> e3132a7 (.)
 
         public int CategoryId { get; set; }
 

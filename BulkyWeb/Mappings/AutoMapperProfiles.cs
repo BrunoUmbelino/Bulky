@@ -13,6 +13,7 @@ namespace BulkyWeb.Mappings
 
             CreateMap<Category, CategoryVM>();
             CreateMap<CategoryVM, Category>();
+<<<<<<< HEAD
 
             CreateMap<Company, CompanyVM>();
             CreateMap<CompanyVM, Company>();
@@ -27,6 +28,8 @@ namespace BulkyWeb.Mappings
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => 0));
 
             CreateMap<Order, OrderVM>();
+=======
+>>>>>>> e3132a7 (.)
         }
     }
 }

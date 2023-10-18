@@ -1,8 +1,8 @@
+using AutoMapper;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -14,11 +14,13 @@ namespace BulkyWeb.Areas.Customer.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public HomeController(ILogger<HomeController> logger, IUnitOfWork unitOfWork)
+        public HomeController(ILogger<HomeController> logger, IUnitOfWork unitOfWork, IMapper mapper)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         public IActionResult Index()
@@ -31,9 +33,12 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 if (quantityCartItems is not null) HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)quantityCartItems);
             }
 
-            var products = _unitOfWork.ProductRepo.GetAll(
-                includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}");
-            return View(products);
+            var productsVM = _unitOfWork.ProductRepo
+                .GetAll(includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}")
+                .Select(p=> _mapper.Map<ProductVM>(p))
+                .ToList();
+      
+            return View(productsVM);
         }
 
         public IActionResult Details(int productId)

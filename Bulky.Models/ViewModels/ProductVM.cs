@@ -42,7 +42,7 @@ namespace Bulky.Models.ViewModels
         [Required]
         [Display(Name = "Price over 100 units")]
         [DataType(DataType.Currency)]
-        public decimal PriceOver100 { get; set; }
+        public decimal PriceOver100 { get; set; } 
 
         public int CategoryId { get; set; }
 

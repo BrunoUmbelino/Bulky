@@ -6,6 +6,7 @@ namespace Bulky.Models
 {
     public class ShopCartItem
     {
+        [Key]
         public int Id { get; set; }
 
         public int ShopCartId { get; set; }

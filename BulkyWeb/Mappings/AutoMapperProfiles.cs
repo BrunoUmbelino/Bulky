@@ -10,6 +10,9 @@ namespace BulkyWeb.Mappings
         {
             CreateMap<Product, ProductVM>();
             CreateMap<ProductVM, Product>();
+
+            CreateMap<Category, CategoryVM>();
+            CreateMap<CategoryVM, Category>();
         }
     }
 }

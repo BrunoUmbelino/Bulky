@@ -1,5 +1,7 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
+﻿using AutoMapper;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,23 +12,25 @@ namespace BulkyWeb.Areas.Admin.Controllers
     [Authorize(Roles = CONST_Roles.Admin)]
     public class CompanyController : Controller
     {
+        private readonly ILogger<CompanyController> _logger;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CompanyController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
+        public CompanyController(IUnitOfWork unitOfWork, ILogger<CompanyController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
+            _mapper = mapper;
         }
 
         #region ACTIONS
 
-        // GET: CompanyController
         public ActionResult Index()
         {
-            var companies = _unitOfWork.CompanyRepo.GetAll();
-            return View(companies);
+            var companiesVM = _unitOfWork.CompanyRepo.GetAll().Select(c=>_mapper.Map<CategoryVM>(c));
+            return View(companiesVM);
         }
 
-        // GET: CompanyController/Upsert
         public ActionResult Upsert(int id)
         {
             if (id == 0) return NotFound();
@@ -36,7 +40,6 @@ namespace BulkyWeb.Areas.Admin.Controllers
             return View(company);
         }
 
-        // POST: CompanyController/Upsert
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Upsert(Company company)

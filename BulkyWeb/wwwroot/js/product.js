@@ -8,7 +8,7 @@ function LoadDataTable() {
         "columns": [
             { data: "title", "width": "30%" },
             { data: "author", "width": "15%" },
-            { data: "listPrice", "width": "10%", render: $.fn.dataTable.render.number(',', '.', 2, 'R$ ') },
+            { data: "priceList", "width": "10%", render: $.fn.dataTable.render.number(',', '.', 2, 'R$ ') },
             { data: "isbN13", "width": "15%", },
             { data: "category.name", width: "15%" },
             {

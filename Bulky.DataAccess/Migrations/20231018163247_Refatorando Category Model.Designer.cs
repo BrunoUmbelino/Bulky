@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bulky.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20231017124047_Refatorando o modelo Product e seu respectivo dataSeed")]
-    partial class RefatorandoomodeloProducteseurespectivodataSeed
+    [Migration("20231018163247_Refatorando Category Model")]
+    partial class RefatorandoCategoryModel
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,12 +33,13 @@ namespace Bulky.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
+                    b.Property<byte>("DisplayOrder")
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
@@ -48,31 +49,31 @@ namespace Bulky.DataAccess.Migrations
                         new
                         {
                             Id = 1,
-                            DisplayOrder = 1,
+                            DisplayOrder = (byte)1,
                             Name = "Análise de Sistemas e Design"
                         },
                         new
                         {
                             Id = 2,
-                            DisplayOrder = 2,
+                            DisplayOrder = (byte)2,
                             Name = "Lógica, Linguagem Política e Ciências Sociais"
                         },
                         new
                         {
                             Id = 3,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Probabilidade e Estatística"
                         },
                         new
                         {
                             Id = 4,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Política, Literatura e Ficção"
                         },
                         new
                         {
                             Id = 5,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Ficção Literária"
                         });
                 });

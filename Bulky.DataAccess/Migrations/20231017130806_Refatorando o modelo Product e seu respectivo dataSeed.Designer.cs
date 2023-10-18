@@ -4,6 +4,7 @@ using Bulky.DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bulky.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231017130806_Refatorando o modelo Product e seu respectivo dataSeed")]
+    partial class RefatorandoomodeloProducteseurespectivodataSeed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,47 +33,46 @@ namespace Bulky.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<byte>("DisplayOrder")
-                        .HasColumnType("tinyint");
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            DisplayOrder = (byte)1,
+                            DisplayOrder = 1,
                             Name = "Análise de Sistemas e Design"
                         },
                         new
                         {
                             Id = 2,
-                            DisplayOrder = (byte)2,
+                            DisplayOrder = 2,
                             Name = "Lógica, Linguagem Política e Ciências Sociais"
                         },
                         new
                         {
                             Id = 3,
-                            DisplayOrder = (byte)3,
+                            DisplayOrder = 3,
                             Name = "Probabilidade e Estatística"
                         },
                         new
                         {
                             Id = 4,
-                            DisplayOrder = (byte)3,
+                            DisplayOrder = 3,
                             Name = "Política, Literatura e Ficção"
                         },
                         new
                         {
                             Id = 5,
-                            DisplayOrder = (byte)3,
+                            DisplayOrder = 3,
                             Name = "Ficção Literária"
                         });
                 });
@@ -101,7 +103,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Companies", (string)null);
+                    b.ToTable("Companies");
 
                     b.HasData(
                         new
@@ -159,7 +161,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderDetails", (string)null);
+                    b.ToTable("OrderDetails");
                 });
 
             modelBuilder.Entity("Bulky.Models.OrderHeader", b =>
@@ -235,7 +237,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.ToTable("OrderHeaders", (string)null);
+                    b.ToTable("OrderHeaders");
                 });
 
             modelBuilder.Entity("Bulky.Models.Product", b =>
@@ -284,7 +286,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
 
                     b.HasData(
                         new
@@ -412,7 +414,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductImages", (string)null);
+                    b.ToTable("ProductImages");
                 });
 
             modelBuilder.Entity("Bulky.Models.ShopCart", b =>
@@ -437,7 +439,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.ToTable("ShopCarts", (string)null);
+                    b.ToTable("ShopCarts");
                 });
 
             modelBuilder.Entity("Bulky.Models.ShopCartItem", b =>
@@ -463,7 +465,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ShopCartId");
 
-                    b.ToTable("ShopCartItems", (string)null);
+                    b.ToTable("ShopCartItems");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

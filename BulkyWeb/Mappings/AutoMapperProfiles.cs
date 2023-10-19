@@ -13,6 +13,9 @@ namespace BulkyWeb.Mappings
 
             CreateMap<Category, CategoryVM>();
             CreateMap<CategoryVM, Category>();
+
+            CreateMap<Company, CompanyVM>();
+            CreateMap<CompanyVM, Company>();
         }
     }
 }

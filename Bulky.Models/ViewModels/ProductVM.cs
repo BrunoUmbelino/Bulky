@@ -9,7 +9,7 @@ namespace Bulky.Models.ViewModels
         public int? Id { get; set; }
 
         [Required]
-        [StringLength(200)]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
         [MaxLength]
@@ -17,11 +17,11 @@ namespace Bulky.Models.ViewModels
 
         [Required]
         [Display(Name = "ISBN-13")]
-        [StringLength(20)]
+        [MaxLength(20)]
         public string ISBN13 { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(50)]
+        [MaxLength(50)]
         public string Author { get; set; } = string.Empty;
 
         [Required]

@@ -9,7 +9,7 @@ namespace Bulky.Models
         public int Id { get; set; }
 
         [Required]
-        [StringLength(200)]
+        [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
         [Column(TypeName = "tinyint")]

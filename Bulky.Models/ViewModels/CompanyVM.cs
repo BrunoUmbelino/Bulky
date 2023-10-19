@@ -1,12 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Bulky.Models
+namespace Bulky.Models.ViewModels
 {
-    public class Company
+    public class CompanyVM
     {
-        [Key]
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
         [Required]
         [MaxLength(200)]
@@ -20,6 +20,7 @@ namespace Bulky.Models
         public int AddressId { get; set; }
 
         [ForeignKey(nameof(AddressId))]
-        public virtual Address? Address { get; set; }
+        [ValidateNever]
+        public Address Address { get; set; } = new();
     }
 }

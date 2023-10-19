@@ -1,6 +1,7 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bulky.DataAccess.Repository
 {
@@ -15,15 +16,16 @@ namespace Bulky.DataAccess.Repository
 
         public void update(Company company)
         {
-            var companyDB = _context.Companies.FirstOrDefault(c=>c.Id == company.Id);
+            var companyDB = _context.Companies.Include(nameof(Company.Address)).FirstOrDefault(c=>c.Id == company.Id);
 
             if (companyDB != null)
             {
                 companyDB.Name = company.Name;
-                companyDB.StreetAddress = company.StreetAddress;
-                companyDB.City = company.City;
-                companyDB.State = company.State;
-                companyDB.PostalCode = company.PostalCode;
+                companyDB.CNPJ = company.CNPJ;
+                companyDB.Address.StreetAddress = company.Address?.StreetAddress ?? companyDB.Address.StreetAddress;
+                companyDB.Address.City = company.Address?.City ?? companyDB.Address.City;
+                companyDB.Address.State = company.Address?.State ?? companyDB.Address.State;
+                companyDB.Address.PostalCode = company.Address?.PostalCode ?? companyDB.Address.PostalCode;
 
                 _context.Companies.Update(companyDB);
             }

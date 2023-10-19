@@ -8,6 +8,7 @@ namespace Bulky.Models.ViewModels
         public int? Id { get; set; }
 
         [Required]
+        [MaxLength(200)]
         [DisplayName("Category Name")]
         public string Name { get; set; } = string.Empty;
 

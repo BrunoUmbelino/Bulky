@@ -1,5 +1,6 @@
 ﻿
 using Bulky.Models;
+using Bulky.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -124,7 +125,7 @@ namespace Bulky.DataAccess.Data
                     PriceOver50 = 09.35m,
                     PriceOver100 = 07.94m,
                     CategoryId = 4
-                } ,       
+                },
                 new Product
                 {
                     Id = 8,
@@ -140,33 +141,84 @@ namespace Bulky.DataAccess.Data
                 }
             );
 
-            modelBuilder.Entity<Company>().HasData(
-                new Company
+            modelBuilder.Entity<Address>().HasData(
+                new Address
                 {
                     Id = 1,
-                    Name = "Company A",
                     StreetAddress = "123 Main St",
                     City = "City A",
                     State = "State A",
                     PostalCode = "12345"
                 },
+                new Address
+                {
+                    Id = 2,
+                    StreetAddress = "456 Elm St",
+                    City = "City B",
+                    State = "State B",
+                    PostalCode = "23456"
+                },
+                new Address
+                {
+                    Id = 3,
+                    StreetAddress = "789 Oak St",
+                    City = "City C",
+                    State = "State C",
+                    PostalCode = "34567"
+                },
+                new Address
+                {
+                    Id = 4,
+                    StreetAddress = "101 Pine St",
+                    City = "City D",
+                    State = "State D",
+                    PostalCode = "45678"
+                },
+                new Address
+                {
+                    Id = 5,
+                    StreetAddress = "202 Cedar St",
+                    City = "City E",
+                    State = "State E",
+                    PostalCode = "56789"
+                }
+                );
+
+            modelBuilder.Entity<Company>().HasData(
+                new Company
+                {
+                    Id = 1,
+                    Name = "Company A",
+                    CNPJ = "12345678901234",
+                    AddressId = 1
+                },
                 new Company
                 {
                     Id = 2,
                     Name = "Company B",
-                    StreetAddress = "456 Elm St",
-                    City = "City B",
-                    State = "State B",
-                    PostalCode = "67890"
+                    CNPJ = "56789012345678",
+                    AddressId = 2
                 },
                 new Company
                 {
                     Id = 3,
                     Name = "Company C",
-                    StreetAddress = "789 Oak St",
-                    City = "City C",
-                    State = "State C",
-                    PostalCode = "54321"
+                    CNPJ = "90123456789012",
+                    AddressId = 3
+                },
+                new Company
+                {
+                    Id = 4,
+                    Name = "Company D",
+                    CNPJ = "23456789012345",
+                    AddressId = 4
+                },
+                new Company
+                {
+                    Id = 5,
+                    Name = "Company E",
+                    CNPJ = "67890123456789",
+                    AddressId = 5
                 }
             );
         }

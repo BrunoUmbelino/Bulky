@@ -1,8 +1,9 @@
-﻿@* @model ShopCartItem
+﻿@model ShopCartItemVM
 
 <form method="post">
     <input asp-for="Id" hidden />
     <input asp-for="ProductId" hidden />
+
     <div class="card shadow border-0 mt-4 mb-4 rou">
         <div class="card-header bg-primary text-light py-4">
             <div class="row">
@@ -28,6 +29,7 @@
                         {
                             <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
                                 <div class="carousel-indicators">
+
                                     @foreach (var image in Model.Product.Images
                                    .Select((image, index) => new { ProductImage = image, Index = index }))
                                     {
@@ -78,13 +80,13 @@
                                 <div class="text-dark text-opacity-50 fw-semibold">Quantity</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white border-bottom">
-                                <div class="text-dark text-opacity-50 fw-semibold">1-50</div>
+                                <div class="text-dark text-opacity-50 fw-semibold">1-49 units</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white border-bottom">
-                                <div class="text-dark text-opacity-50 fw-semibold">51-100</div>
+                                <div class="text-dark text-opacity-50 fw-semibold">50-99 units</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white border-bottom">
-                                <div class="text-dark text-opacity-50 fw-semibold">101+</div>
+                                <div class="text-dark text-opacity-50 fw-semibold">100+ units</div>
                             </div>
                         </div>
                         <div class="row text-center ps-2">
@@ -92,13 +94,13 @@
                                 <div>Price</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white text-warning fw-bold">
-                                <div>@Model.Product?.Price1to49.ToString("c")</div>
+                                <div>@Model.Product?.PriceStandart.ToString("c")</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white text-warning fw-bold">
-                                <div>@Model.Product?.PriceUp100.ToString("c")</div>
+                                <div>@Model.Product?.Price50More.ToString("c")</div>
                             </div>
                             <div class="p-1 col-3 col-lg-2 bg-white text-warning fw-bold">
-                                <div>@Model.Product?.PriceAbove100.ToString("c")</div>
+                                <div>@Model.Product?.Price100More.ToString("c")</div>
                             </div>
                         </div>
                         <div class="row pl-4 my-3">
@@ -143,32 +145,32 @@
 
 @section Scripts{
     <script>
-        $(document).ready(function () {
-            $(document).ready(function () {
-                var $shortDescription = $(".short-description");
-                var $fullDescription = $(".full-description");
-                var $readMore = $(".read-more");
+        $(document).ready(function ReadMore() {
+            var $shortDescription = $(".short-description");
+            var $fullDescription = $(".full-description");
+            var $readMore = $(".read-more");
 
-                var charLimit = 800;
+            var charLimit = 800;
 
-                // Verifique se a descrição curta precisa ser truncada
-                var shortDescriptionHtml = $shortDescription.html();
-                if (shortDescriptionHtml.length > charLimit) {
-                    var truncatedHtml = shortDescriptionHtml.substring(0, charLimit) + "...";
-                    $shortDescription.html(truncatedHtml);
-                    $readMore.show();
-                }
+            // Verifique se a descrição curta precisa ser truncada
+            var shortDescriptionHtml = $shortDescription.html();
+            if (shortDescriptionHtml.length > charLimit) {
+                var truncatedHtml = shortDescriptionHtml.substring(0, charLimit) + "...";
+                $shortDescription.html(truncatedHtml);
+                $readMore.show();
+            } else {
+                $readMore.hide();
+            }
 
-                // Manipule o clique no link "Ler mais"
-                $readMore.click(function (e) {
-                    e.preventDefault();
-                    $shortDescription.toggle();
-                    $fullDescription.toggle();
-                });
+            // Manipule o clique no link "Ler mais"
+            $readMore.click(function (e) {
+                e.preventDefault();
+                $shortDescription.toggle();
+                $fullDescription.toggle();
             });
         });
     </script>
     @{
         <partial name="_ValidationScriptsPartial" />
     }
-} *@
+}

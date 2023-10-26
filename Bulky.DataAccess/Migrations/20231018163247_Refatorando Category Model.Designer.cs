@@ -269,10 +269,10 @@ namespace Bulky.DataAccess.Migrations
                     b.Property<decimal>("PriceList")
                         .HasColumnType("decimal(6,2)");
 
-                    b.Property<decimal>("PriceOver100")
+                    b.Property<decimal>("Price100More2")
                         .HasColumnType("decimal(6,2)");
 
-                    b.Property<decimal>("PriceOver50")
+                    b.Property<decimal>("Price50More")
                         .HasColumnType("decimal(6,2)");
 
                     b.Property<decimal>("PriceStandart")

@@ -18,7 +18,7 @@ namespace Bulky.DataAccess.Data
         public DbSet<Company> Companies { get; set; }
 
         public DbSet<ShopCart> ShopCarts { get; set; }
-        public DbSet<ShopCartItem> ShopCartItems { get; set; }
+        public DbSet<Models.ShopCartItem> ShopCartItems { get; set; }
         public DbSet<OrderHeader> OrderHeaders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
 
@@ -44,8 +44,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8550800653",
                     PriceList = 121.08m,
                     PriceStandart = 100.90m,
-                    PriceOver50 = 85.76m,
-                    PriceOver100 = 72.90m,
+                    Price50More = 85.76m,
+                    Price100More = 72.90m,
                     CategoryId = 1,
                 },
                 new Product
@@ -57,8 +57,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-1449373320",
                     PriceList = 390.79m,
                     PriceStandart = 325.90m,
-                    PriceOver50 = 276.25m,
-                    PriceOver100 = 234.81m,
+                    Price50More = 276.25m,
+                    Price100More = 234.81m,
                     CategoryId = 1,
                 },
                 new Product
@@ -70,8 +70,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8576082675",
                     PriceList = 87.48m,
                     PriceStandart = 72.90m,
-                    PriceOver50 = 61.96m,
-                    PriceOver100 = 52.67m,
+                    Price50More = 61.96m,
+                    Price100More = 52.67m,
                     CategoryId = 1
                 },
                 new Product
@@ -83,8 +83,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8576086475",
                     PriceList = 75.42m,
                     PriceStandart = 62.85m,
-                    PriceOver50 = 53.42m,
-                    PriceOver100 = 45.40m,
+                    Price50More = 53.42m,
+                    Price100More = 45.40m,
                     CategoryId = 1,
                 },
                 new Product
@@ -96,8 +96,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8501111647",
                     PriceList = 51.51m,
                     PriceStandart = 42.92m,
-                    PriceOver50 = 36.48m,
-                    PriceOver100 = 31.00m,
+                    Price50More = 36.48m,
+                    Price100More = 31.00m,
                     CategoryId = 2
                 },
                 new Product
@@ -109,8 +109,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8537818107",
                     PriceList = 49.86m,
                     PriceStandart = 41.55m,
-                    PriceOver50 = 35.31m,
-                    PriceOver100 = 30.01m,
+                    Price50More = 35.31m,
+                    Price100More = 30.01m,
                     CategoryId = 3
                 },
                 new Product
@@ -122,8 +122,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-8535909555",
                     PriceList = 13.20m,
                     PriceStandart = 11.00m,
-                    PriceOver50 = 09.35m,
-                    PriceOver100 = 07.94m,
+                    Price50More = 09.35m,
+                    Price100More = 07.94m,
                     CategoryId = 4
                 },
                 new Product
@@ -135,8 +135,8 @@ namespace Bulky.DataAccess.Data
                     ISBN13 = "978-6580210015",
                     PriceList = 86.74m,
                     PriceStandart = 72.29m,
-                    PriceOver50 = 61.44m,
-                    PriceOver100 = 52.22m,
+                    Price50More = 61.44m,
+                    Price100More = 52.22m,
                     CategoryId = 5
                 }
             );

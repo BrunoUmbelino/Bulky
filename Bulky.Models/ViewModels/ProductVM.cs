@@ -35,24 +35,21 @@ namespace Bulky.Models.ViewModels
         public decimal PriceStandart { get; set; }
 
         [Required]
-        [Display(Name = "Price over 50 units")]
+        [Display(Name = "Price for 50 units or more")]
         [DataType(DataType.Currency)]
-        public decimal PriceOver50 { get; set; }
+        public decimal Price50More { get; set; }
 
         [Required]
-        [Display(Name = "Price over 100 units")]
+        [Display(Name = "Price for 100 units or more")]
         [DataType(DataType.Currency)]
-        public decimal PriceOver100 { get; set; } 
+        public decimal Price100More { get; set; } 
 
         public int CategoryId { get; set; }
 
-        [ValidateNever]
         public Category? Category { get; set; }
 
-        [ValidateNever]
         public IEnumerable<SelectListItem>? CategoryList { get; set; }
 
-        [ValidateNever]
-        public List<ProductImage> Images { get; set; } = new();
+        public List<ProductImage>? Images { get; set; } = new();
     }
 }

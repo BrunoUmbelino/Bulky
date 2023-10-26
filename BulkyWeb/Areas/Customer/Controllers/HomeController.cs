@@ -1,8 +1,10 @@
 using AutoMapper;
+using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Security.Claims;
@@ -35,32 +37,120 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
             var productsVM = _unitOfWork.ProductRepo
                 .GetAll(includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}")
-                .Select(p=> _mapper.Map<ProductVM>(p))
+                .Select(p => _mapper.Map<ProductVM>(p))
                 .ToList();
-      
+
             return View(productsVM);
         }
 
         public IActionResult Details(int productId)
         {
-            if (productId == 0) return NotFound();
+            if (productId == 0)
+            {
+                TempData["errorMessage"] = $"Invalid Id";
+                return RedirectToAction(nameof(Index));
+            }
             var product = _unitOfWork.ProductRepo.Get(p => p.Id == productId,
                 includeProperties: $"{nameof(Product.Category)}, {nameof(Product.Images)}");
-            if (product == null) return NotFound();
-
-            ShopCartItem shopCartItem = new()
+            if (product == null)
+            {
+                TempData["errorMessage"] = $"Resource not found.";
+                return RedirectToAction(nameof(Index));
+            }
+            ShopCartItemVM shopCartItemVM = new()
             {
                 ProductId = productId,
                 Product = product,
                 Quantity = 1
             };
 
-            return View(shopCartItem);
+            return View(shopCartItemVM);
+        }
+
+        [HttpPost]
+        [Authorize]
+        public IActionResult Details(ShopCartItemVM shopCartItemVM)
+        {
+            using (var transaction = _unitOfWork.BeginTransaction())
+            {
+                try
+                {
+                    if (shopCartItemVM.Quantity <= 0 || shopCartItemVM.ProductId == 0) return ValidationProblem();
+                    string? userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (userId == null)
+                    {
+                        TempData["errorMessage"] = $"User not found.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    var shopCart = _unitOfWork.ShopCartRepo.Get(c => c.ApplicationUserId == userId,
+                        includeProperties: nameof(ShopCart.ShopCartItems));
+                    if (shopCart is null)
+                    {
+                        shopCart = new ShopCart()
+                        {
+                            ApplicationUserId = userId,
+                            AddedIn = DateTime.Now,
+                        };
+                        _unitOfWork.ShopCartRepo.Add(shopCart);
+                        _unitOfWork.Save();
+                    }
+
+                    var shopItemDB = shopCart.ShopCartItems.Find(i => i.ProductId == shopCartItemVM.ProductId);
+                    if (shopItemDB is null)
+                    {
+                        var newCartItem = _mapper.Map<ShopCartItem>(shopCartItemVM);
+
+                        newCartItem.SetUnitPrice(_unitOfWork.ProductRepo.Get(i => i.Id == newCartItem.ProductId)
+                            ?? throw new Exception("Product not found."));
+                        newCartItem.CalculateTotalPrice();
+                        newCartItem.ShopCartId = shopCart.Id;
+                        newCartItem.AddedIn = DateTime.Now;
+
+                        shopCart.ShopCartItems.Add(newCartItem);
+                        shopCart.CalculateTotalValue();
+                        shopCart.UpdatedOn = DateTime.Now;
+
+                        _unitOfWork.ShopCartRepo.Update(shopCart);
+                        _unitOfWork.ShopCartItemRepo.Add(newCartItem);
+                        _unitOfWork.Save();
+                    }
+                    else
+                    {
+                        shopItemDB.Quantity += shopCartItemVM.Quantity;
+                        shopItemDB.SetUnitPrice(_unitOfWork.ProductRepo.Get(p => p.Id == shopItemDB.ProductId)
+                            ?? throw new Exception("Invalid Product"));
+                        shopItemDB.CalculateTotalPrice();
+                        shopItemDB.UpdatedOn = DateTime.Now;
+
+                        _unitOfWork.ShopCartItemRepo.Update(shopItemDB);
+                        _unitOfWork.Save();
+
+                        shopCart.CalculateTotalValue();
+                        shopCart.UpdatedOn = DateTime.Now;
+
+                        _unitOfWork.ShopCartRepo.Update(shopCart);
+                        _unitOfWork.Save();
+                    }
+
+                    transaction.Commit();
+                    TempData["successMessage"] = $"Cart updated sucessfully";
+                    return RedirectToAction(nameof(Index));
+
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    _logger.LogError(0, ex, "Erro no processo de Adicionar item ao carrinho.");
+                    TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
         }
 
         //[HttpPost]
         //[Authorize]
-        //public IActionResult Details(ShopCartItem shopCartItem)
+        //public IActionResult Details(ShopCartItemVM shopCartItem)
         //{
         //    try
         //    {
@@ -68,8 +158,8 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         //        string? userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         //        if (userId == null) return NotFound();
-        //        shopCartItem.ApplicationUserId = userId;
 
+        //        shopCartItem.ApplicationUserId = userId;
         //        ShopCart? shopCartFromDb = _unitOfWork.ShopCartRepo.Get(sc => sc.ApplicationUserId == userId, includeProperties: nameof(ShopCart.ShopCartItems));
         //        if (shopCartFromDb is null)
         //        {
@@ -113,5 +203,6 @@ namespace BulkyWeb.Areas.Customer.Controllers
         {
             return View();
         }
+
     }
 }

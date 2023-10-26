@@ -1,4 +1,7 @@
-﻿namespace Bulky.DataAccess.Repository.IRepository
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
+
+namespace Bulky.DataAccess.Repository.IRepository
 {
     public interface IUnitOfWork
     {
@@ -15,5 +18,6 @@
         IOrderDetailRepository OrderDetailRepo { get; }
 
         void Save();
+        public IDbContextTransaction BeginTransaction();
     }
 }

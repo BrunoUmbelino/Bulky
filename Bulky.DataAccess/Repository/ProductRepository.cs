@@ -24,8 +24,8 @@ namespace Bulky.DataAccess.Repository
                 productDB.Author = product.Author;
                 productDB.PriceList = product.PriceList;
                 productDB.PriceStandart = product.PriceStandart;
-                productDB.PriceOver50 = product.PriceOver50;
-                productDB.PriceOver100 = product.PriceOver100;
+                productDB.Price50More = product.Price50More;
+                productDB.Price100More = product.Price100More;
                 productDB.CategoryId = product.CategoryId;
                 productDB.Images = product.Images;
 

@@ -1,5 +1,7 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace Bulky.DataAccess.Repository
 {
@@ -33,6 +35,11 @@ namespace Bulky.DataAccess.Repository
         public void Save()
         {
             _context.SaveChanges();
+        }
+
+        public IDbContextTransaction BeginTransaction()
+        {
+            return _context.Database.BeginTransaction();
         }
     }
 }

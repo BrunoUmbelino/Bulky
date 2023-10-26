@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bulky.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20231017130806_Refatorando o modelo Product e seu respectivo dataSeed")]
-    partial class RefatorandoomodeloProducteseurespectivodataSeed
+    [Migration("20231019223317_Refatorando o modelo de ShopCartItem e ShopCart")]
+    partial class RefatorandoomodelodeShopCartItemeShopCart
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,81 @@ namespace Bulky.DataAccess.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Bulky.Models.Address", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("StreetAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Address");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            City = "City A",
+                            PostalCode = "12345",
+                            State = "State A",
+                            StreetAddress = "123 Main St"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            City = "City B",
+                            PostalCode = "23456",
+                            State = "State B",
+                            StreetAddress = "456 Elm St"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            City = "City C",
+                            PostalCode = "34567",
+                            State = "State C",
+                            StreetAddress = "789 Oak St"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            City = "City D",
+                            PostalCode = "45678",
+                            State = "State D",
+                            StreetAddress = "101 Pine St"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            City = "City E",
+                            PostalCode = "56789",
+                            State = "State E",
+                            StreetAddress = "202 Cedar St"
+                        });
+                });
+
             modelBuilder.Entity("Bulky.Models.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -33,12 +108,13 @@ namespace Bulky.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
+                    b.Property<byte>("DisplayOrder")
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
@@ -48,31 +124,31 @@ namespace Bulky.DataAccess.Migrations
                         new
                         {
                             Id = 1,
-                            DisplayOrder = 1,
+                            DisplayOrder = (byte)1,
                             Name = "Análise de Sistemas e Design"
                         },
                         new
                         {
                             Id = 2,
-                            DisplayOrder = 2,
+                            DisplayOrder = (byte)2,
                             Name = "Lógica, Linguagem Política e Ciências Sociais"
                         },
                         new
                         {
                             Id = 3,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Probabilidade e Estatística"
                         },
                         new
                         {
                             Id = 4,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Política, Literatura e Ficção"
                         },
                         new
                         {
                             Id = 5,
-                            DisplayOrder = 3,
+                            DisplayOrder = (byte)3,
                             Name = "Ficção Literária"
                         });
                 });
@@ -85,23 +161,22 @@ namespace Bulky.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("City")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("AddressId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CNPJ")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PostalCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("State")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StreetAddress")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AddressId");
 
                     b.ToTable("Companies");
 
@@ -109,29 +184,37 @@ namespace Bulky.DataAccess.Migrations
                         new
                         {
                             Id = 1,
-                            City = "City A",
-                            Name = "Company A",
-                            PostalCode = "12345",
-                            State = "State A",
-                            StreetAddress = "123 Main St"
+                            AddressId = 1,
+                            CNPJ = "12345678901234",
+                            Name = "Company A"
                         },
                         new
                         {
                             Id = 2,
-                            City = "City B",
-                            Name = "Company B",
-                            PostalCode = "67890",
-                            State = "State B",
-                            StreetAddress = "456 Elm St"
+                            AddressId = 2,
+                            CNPJ = "56789012345678",
+                            Name = "Company B"
                         },
                         new
                         {
                             Id = 3,
-                            City = "City C",
-                            Name = "Company C",
-                            PostalCode = "54321",
-                            State = "State C",
-                            StreetAddress = "789 Oak St"
+                            AddressId = 3,
+                            CNPJ = "90123456789012",
+                            Name = "Company C"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            AddressId = 4,
+                            CNPJ = "23456789012345",
+                            Name = "Company D"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            AddressId = 5,
+                            CNPJ = "67890123456789",
+                            Name = "Company E"
                         });
                 });
 
@@ -268,7 +351,7 @@ namespace Bulky.DataAccess.Migrations
                     b.Property<decimal>("PriceList")
                         .HasColumnType("decimal(6,2)");
 
-                    b.Property<decimal>("Price100More2")
+                    b.Property<decimal>("Price100More")
                         .HasColumnType("decimal(6,2)");
 
                     b.Property<decimal>("Price50More")
@@ -429,10 +512,10 @@ namespace Bulky.DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("CreatedIn")
-                        .HasColumnType("datetime2");
+                    b.Property<decimal>("TotalValue")
+                        .HasColumnType("decimal(6,2)");
 
-                    b.Property<DateTime>("UpdatedIn")
+                    b.Property<DateTime>("UpdatedOn")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -450,14 +533,23 @@ namespace Bulky.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("AddedIn")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
+                    b.Property<short>("Quantity")
+                        .HasColumnType("smallint");
 
                     b.Property<int>("ShopCartId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(6,2)");
 
                     b.HasKey("Id");
 
@@ -700,6 +792,17 @@ namespace Bulky.DataAccess.Migrations
                     b.HasIndex("CompanyId");
 
                     b.HasDiscriminator().HasValue("ApplicationUser");
+                });
+
+            modelBuilder.Entity("Bulky.Models.Company", b =>
+                {
+                    b.HasOne("Bulky.Models.Address", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Address");
                 });
 
             modelBuilder.Entity("Bulky.Models.OrderDetail", b =>

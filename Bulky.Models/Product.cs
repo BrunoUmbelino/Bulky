@@ -33,17 +33,18 @@ namespace Bulky.Models
 
         [Required]
         [Column(TypeName = "decimal(6,2)")]
-        public decimal PriceOver50 { get; set; }
+        public decimal Price50More { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(6,2)")]
-        public decimal PriceOver100 { get; set; }
+        public decimal Price100More { get; set; }
 
         public int CategoryId { get; set; }
 
+        public List<ProductImage> Images { get; set; } = new();
+
+
         [ForeignKey(nameof(CategoryId))]
         public virtual Category? Category { get; set; }
-
-        public List<ProductImage> Images { get; set; } = new();
     }
 }

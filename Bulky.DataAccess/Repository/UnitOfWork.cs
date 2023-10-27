@@ -1,5 +1,6 @@
 ﻿using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
+using Bulky.Models;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
 
@@ -17,6 +18,7 @@ namespace Bulky.DataAccess.Repository
         public IOrderDetailRepository OrderDetailRepo { get; private set; }
         public IProductImageRepository ProductImageRepo {  get; private set; }
         public IShopCartItemRepository ShopCartItemRepo {  get; private set; }
+        public OrderRepository OrderRepo {  get; private set; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -30,6 +32,7 @@ namespace Bulky.DataAccess.Repository
             OrderDetailRepo = new OrderDetailRepository(_context);
             ProductImageRepo = new ProductImageRepository(_context);
             ShopCartItemRepo = new ShopCartItemRepository(_context);
+            OrderRepo = new OrderRepository(_context);
         }
 
         public void Save()

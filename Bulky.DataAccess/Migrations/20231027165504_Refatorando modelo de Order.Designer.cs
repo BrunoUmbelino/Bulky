@@ -4,6 +4,7 @@ using Bulky.DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bulky.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231027165504_Refatorando modelo de Order")]
+    partial class RefatorandomodelodeOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,7 +55,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Address");
 
                     b.HasData(
                         new
@@ -237,10 +240,6 @@ namespace Bulky.DataAccess.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
 
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("RecipientName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -258,7 +257,7 @@ namespace Bulky.DataAccess.Migrations
                     b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.ToTable("Deliveries");
+                    b.ToTable("Delivery");
                 });
 
             modelBuilder.Entity("Bulky.Models.Order", b =>
@@ -434,7 +433,7 @@ namespace Bulky.DataAccess.Migrations
                     b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payment");
                 });
 
             modelBuilder.Entity("Bulky.Models.Product", b =>
@@ -643,7 +642,7 @@ namespace Bulky.DataAccess.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("PurchaseItems");
+                    b.ToTable("PurchaseItem");
                 });
 
             modelBuilder.Entity("Bulky.Models.ShopCart", b =>

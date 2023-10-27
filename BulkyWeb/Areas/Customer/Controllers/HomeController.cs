@@ -1,5 +1,4 @@
 using AutoMapper;
-using Bulky.DataAccess.Data;
 using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
@@ -136,7 +135,6 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     transaction.Commit();
                     TempData["successMessage"] = $"Cart updated sucessfully";
                     return RedirectToAction(nameof(Index));
-
                 }
                 catch (Exception ex)
                 {

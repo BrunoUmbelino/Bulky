@@ -1,7 +1,13 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
+﻿using AutoMapper;
+using Bulky.DataAccess.Repository.IRepository;
+using Bulky.Models;
 using Bulky.Models.ViewModels;
+using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Stripe.Checkout;
 
 namespace BulkyWeb.Areas.Customer.Controllers
 {
@@ -11,227 +17,305 @@ namespace BulkyWeb.Areas.Customer.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CartController> _logger;
+        private readonly IMapper _mapper;
+        private string? _userId => (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         [BindProperty]
         public ShopCartVM ShoppingCartVM { get; set; } = null!;
 
-        public CartController(IUnitOfWork unitOfWork, ILogger<CartController> logger)
+        public CartController(IUnitOfWork unitOfWork, ILogger<CartController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _mapper = mapper;
         }
 
         #region ACTIONS
 
+        public IActionResult Index()
+        {
+            if (_userId == null) throw new Exception("User not found");
 
-        //public IActionResult Index()
-        //{
-        //    string? userId = (User.Identity as ClaimsIdentity)?
-        //        .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                filter: s => s.ApplicationUserId == _userId,
+                include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+            if (shopCart == null)
+                return View(new ShopCartVM());
 
-        //    ShoppingCartVM shopCartVM = new()
-        //    {
-        //        ShoppingCartItems = _unitOfWork.ShopCartItemRepo.GetAll(
-        //            filter: sc => sc.ApplicationUserId == userId,
-        //            includeProperties: $"{nameof(ShopCart.Product)}"),
-        //        OrderHeader = new()
-        //    };
+            var productImages = _unitOfWork.ProductImageRepo.GetAll();
+            foreach (var item in shopCart.ShopCartItems)
+            {
+                var image = productImages.Where(p => p.ProductId == item.ProductId).FirstOrDefault();
+                if (image != null) item.Product.Images.Add(image);
+            }
 
-        //    var productImages = _unitOfWork.ProductImageRepo.GetAll();
-        //    foreach (var cart in shopCartVM.ShoppingCartItems)
-        //    {
-        //        if (cart.Product != null) 
-        //            cart.Product.Images = productImages.Where(i => i.ProductId == cart.ProductId).ToList();
-        //        cart.Price = GetPriceBasedOnQuantity(cart);
-        //        shopCartVM.OrderHeader.OrderTotal += (cart.Price * cart.Count);
-        //    }
+            return View(_mapper.Map<ShopCartVM>(shopCart));
+        }
 
-        //    return View(shopCartVM);
-        //}
+        public IActionResult PlusCartItem(int cartItemId)
+        {
+            try
+            {
+                if (cartItemId == 0)
+                    return ResourceNotFound();
 
-        //public IActionResult PlusCartItem(int cartItemId)
-        //{
-        //    if (cartItemId == 0) return NotFound();
-        //    var cartItemDB = _unitOfWork.ShopCartItemRepo.Get(sc => sc.Id == cartItemId, includeProperties: $"{nameof(ShopCart.Product)}");
-        //    if (cartItemDB == null) return NotFound();
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null)
+                    return ResourceNotFound();
 
-        //    cartItemDB.Count += 1;
-        //    cartItemDB.Price = GetPriceBasedOnQuantity(cartItemDB);
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null)
+                    return ResourceNotFound();
 
-        //    _unitOfWork.ShopCartItemRepo.Update(cartItemDB);
-        //    _unitOfWork.Save();
+                shopItem.Quantity += 1;
+                shopItem.SetUnitPrice(shopItem.Product);
+                shopItem.CalculateTotalPrice();
+                shopItem.UpdatedOn = DateTime.Now;
 
-        //    return RedirectToAction(nameof(Index));
-        //}
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
 
-        //public IActionResult MinusCartItem(int cartItemId)
-        //{
-        //    if (cartItemId == 0) return NotFound();
-        //    var cartItemDB = _unitOfWork.ShopCartItemRepo.Get(sc => sc.Id == cartItemId, $"{nameof(ShopCart.Product)}");
-        //    if (cartItemDB == null) return NotFound();
+                _unitOfWork.ShopCartRepo.Update(shopCart);
+                _unitOfWork.Save();
 
-        //    cartItemDB.Count -= 1;
-        //    if (cartItemDB.Count <= 0)
-        //    {
-        //        _unitOfWork.ShopCartItemRepo.Delete(cartItemDB);
-        //        _unitOfWork.Save();
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro no processo de adicionar uma quantidade de item ao carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
 
-        //        var cartItemsQuantity = _unitOfWork.ShopCartItemRepo.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
-        //        if (cartItemsQuantity is not null)
-        //            HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
-        //    }
-        //    else
-        //    {
-        //        cartItemDB.Price = GetPriceBasedOnQuantity(cartItemDB);
-        //        _unitOfWork.ShopCartItemRepo.Update(cartItemDB);
-        //        _unitOfWork.Save();
-        //    }
+        public IActionResult MinusCartItem(int cartItemId)
+        {
+            try
+            {
+                if (cartItemId == 0) return ResourceNotFound();
 
-        //    return RedirectToAction(nameof(Index));
-        //}
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null) return ResourceNotFound();
 
-        //public IActionResult RemoveCartItem(int cartItemId)
-        //{
-        //    if (cartItemId == 0) return NotFound();
-        //    var cartItemDB = _unitOfWork.ShopCartItemRepo.Get(sc => sc.Id == cartItemId, $"{nameof(ShopCart.Product)}");
-        //    if (cartItemDB == null) return NotFound();
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null) return ResourceNotFound();
 
-        //    _unitOfWork.ShopCartItemRepo.Delete(cartItemDB);
-        //    _unitOfWork.Save();
+                if (shopItem.Quantity <= 1) RedirectToAction(nameof(Index));
 
-        //    var cartItemsQuantity = _unitOfWork.ShopCartItemRepo.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
-        //    if (cartItemsQuantity is not null)
-        //        HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+                shopItem.Quantity -= 1;
+                shopItem.SetUnitPrice(shopItem.Product);
+                shopItem.CalculateTotalPrice();
+                shopItem.UpdatedOn = DateTime.Now;
 
-        //    return RedirectToAction(nameof(Index));
-        //}
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
 
-        //public IActionResult Summary()
-        //{
-        //    string? userId = (User.Identity as ClaimsIdentity)?
-        //        .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        //    if (userId == null) return NotFound();
+                _unitOfWork.ShopCartRepo.Update(shopCart);
+                _unitOfWork.Save();
 
-        //    var userFromDb = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
-        //    if (userFromDb == null) return NotFound();
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro no processo de remover uma quantidade de item ao carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
 
-        //    ShoppingCartVM shopCartVM = new()
-        //    {
-        //        ShoppingCartItems = _unitOfWork.ShopCartItemRepo
-        //            .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShopCart.Product)}"),
-        //        OrderHeader = new()
-        //        {
-        //            ApplicationUser = userFromDb,
-        //            PhoneNumber = userFromDb.PhoneNumber ?? string.Empty,
-        //            StreetAddress = userFromDb.StreetAddress ?? string.Empty,
-        //            City = userFromDb.City ?? string.Empty,
-        //            State = userFromDb.State ?? string.Empty,
-        //            PostalCode = userFromDb.PostalCode ?? string.Empty,
-        //            Name = userFromDb.Name ?? string.Empty,
-        //        }
-        //    };
-        //    shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+        public IActionResult RemoveCartItem(int cartItemId)
+        {
+            try
+            {
+                if (cartItemId == 0) return ResourceNotFound();
 
-        //    return View(shopCartVM);
-        //}
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null) return ResourceNotFound();
 
-        //[HttpPost]
-        //[ActionName("Summary")]
-        //public IActionResult SummaryPost(ShoppingCartVM shopCartVM)
-        //{
-        //    try
-        //    {
-        //        string? userId = (User.Identity as ClaimsIdentity)?
-        //            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        //        if (userId == null) return NotFound();
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null) return ResourceNotFound();
 
-        //        shopCartVM.ShoppingCartItems = _unitOfWork.ShopCartItemRepo
-        //            .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShopCart.Product)}");
-        //        shopCartVM.OrderHeader.ApplicationUserId = userId;
-        //        shopCartVM.OrderHeader.OrderDate = DateTime.Now;
-        //        shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+                shopCart.ShopCartItems.Remove(shopItem);
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
 
-        //        var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
-        //        if (applicationUser is null) return NotFound();
+                _unitOfWork.ShopCartRepo.Update(shopCart);
+                _unitOfWork.Save();
 
-        //        bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
-        //        bool isCustomerAccout = !isCompanyAccout;
-        //        if (isCustomerAccout)
-        //        {
-        //            shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.Pending;
-        //            shopCartVM.OrderHeader.OrderStatus = CONST_OrderStatus.Pending;
-        //        }
-        //        if (isCompanyAccout)
-        //        {
-        //            shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
-        //            shopCartVM.OrderHeader.OrderStatus = CONST_PaymentStatus.Approved;
-        //        }
-        //        _unitOfWork.OrderHeaderRepo.Add(shopCartVM.OrderHeader);
-        //        _unitOfWork.Save();
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro no processo de remover item do carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
 
-        //        foreach (var item in shopCartVM.ShoppingCartItems)
-        //        {
-        //            OrderDetail orderDetail = new()
-        //            {
-        //                ProductId = item.ProductId,
-        //                OrderHeaderId = shopCartVM.OrderHeader.Id,
-        //                Price = item.Price,
-        //                Count = item.Count,
-        //            };
-        //            _unitOfWork.OrderDetailRepo.Add(orderDetail);
-        //            _unitOfWork.Save();
-        //        }
+        public IActionResult Summary()
+        {
+            var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                filter: s => s.ApplicationUserId == _userId,
+                include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+            if (shopCart == null) return ResourceNotFound();
 
-        //        if (isCustomerAccout)
-        //        {
-        //            var session = PaymentForStripe(shopCartVM);
-        //            Response.Headers.Location = session.Url;
-        //            return new StatusCodeResult(303);
-        //        }
+            ShopCartVM shopCartVM = _mapper.Map<ShopCartVM>(shopCart);
+            shopCartVM.Delivery.DateDelivery = DateTime.Now.AddDays(14);
+            return View(shopCartVM);
+        }
 
-        //        return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(0, ex, "Erro na criação de Ordem.");
-        //        TempData["errorMessage"] = $"{ex.Message}";
-        //        return RedirectToAction(nameof(Index));
-        //    }
-        //}
+        [HttpPost]
+        [ActionName("Summary")]
+        public IActionResult SummaryPost(ShopCartVM shopCartVM)
+        {
+            try
+            {
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null || _userId == null)
+                    return ResourceNotFound();
 
-        //public IActionResult OrderConfirmation(int id)
-        //{
-        //    OrderHeader orderHeader = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == id);
-        //    if (orderHeader == null) return NotFound();
+                var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == _userId);
+                if (applicationUser is null) return ResourceNotFound();
 
-        //    var isOrderByCompany = orderHeader.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
-        //    if (isOrderByCompany)
-        //    {
-        //        var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
-        //            .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-        //        _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
-        //        _unitOfWork.Save();
+                Order order = new()
+                {
+                    ApplicationUserId = _userId,
+                    Delivery = shopCartVM.Delivery,
+                    Payment = new Payment() { },
+                    PurchaseItems = shopCart.ShopCartItems.Select(s => _mapper.Map<PurchaseItem>(s)).ToList(),
+                    AddedIn = DateTime.Now,
+                    TotalValue = shopCart.TotalValue
 
-        //        return View(id);
-        //    }
+                };
 
-        //    var stripeService = new SessionService();
-        //    Session stripeSession = stripeService.Get(orderHeader.SessionId);
+                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
+                if (isCompanyAccout)
+                {
+                    order.Status = CONST_OrderStatus.Approved;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
 
-        //    if (stripeSession.PaymentStatus.ToLower() == "paid")
-        //    {
-        //        _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(id, stripeSession.Id, stripeSession.PaymentIntentId);
-        //        _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(id, CONST_OrderStatus.Approved, CONST_PaymentStatus.Approved);
-        //        _unitOfWork.Save();
+                    _unitOfWork.OrderRepo.Update(order);
+                    _unitOfWork.Save();
+                }
+                else
+                {
+                    order.Status = CONST_OrderStatus.Pending;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.Pending;
+                    _unitOfWork.OrderRepo.Update(order);
 
-        //        var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
-        //            .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-        //        _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
-        //        _unitOfWork.Save();
-        //    }
+                    var stripeSession = StripePayment(order);
+                    _unitOfWork.Save();
 
-        //    return View(id);
-        //}
+                    Response.Headers.Location = stripeSession.Url;
+                    return new StatusCodeResult(303);
+                }
+
+                return RedirectToAction(nameof(OrderConfirmation), new { id = order.Id });
+
+                //string? userId = (User.Identity as ClaimsIdentity)?
+                //    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                //if (userId == null) return NotFound();
+
+                //shopCartVM.ShoppingCartItems = _unitOfWork.ShopCartItemRepo
+                //    .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShopCart.Product)}");
+                //shopCartVM.OrderHeader.ApplicationUserId = userId;
+                //shopCartVM.OrderHeader.OrderDate = DateTime.Now;
+                //shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+
+                //var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
+                //if (applicationUser is null) return NotFound();
+
+                //bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
+                //bool isCustomerAccout = !isCompanyAccout;
+                //if (isCustomerAccout)
+                //{
+                //    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.Pending;
+                //    shopCartVM.OrderHeader.OrderStatus = CONST_OrderStatus.Pending;
+                //}
+                //if (isCompanyAccout)
+                //{
+                //    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
+                //    shopCartVM.OrderHeader.OrderStatus = CONST_PaymentStatus.Approved;
+                //}
+                //_unitOfWork.OrderHeaderRepo.Add(shopCartVM.OrderHeader);
+                //_unitOfWork.Save();
+
+                //foreach (var item in shopCartVM.ShoppingCartItems)
+                //{
+                //    OrderDetail orderDetail = new()
+                //    {
+                //        ProductId = item.ProductId,
+                //        OrderHeaderId = shopCartVM.OrderHeader.Id,
+                //        Price = item.Price,
+                //        Count = item.Count,
+                //    };
+                //    _unitOfWork.OrderDetailRepo.Add(orderDetail);
+                //    _unitOfWork.Save();
+                //}
+
+                //if (isCustomerAccout)
+                //{
+                //    var session = PaymentForStripe(shopCartVM);
+                //    Response.Headers.Location = session.Url;
+                //    return new StatusCodeResult(303);
+                //}
+
+                //return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro na criação de Ordem.");
+                TempData["errorMessage"] = $"{ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+
+        public IActionResult OrderConfirmation(int id)
+        {
+            return View();
+            //OrderHeader orderHeader = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == id);
+            //if (orderHeader == null) return NotFound();
+
+            //var isOrderByCompany = orderHeader.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
+            //if (isOrderByCompany)
+            //{
+            //    var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
+            //        .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
+            //    _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
+            //    _unitOfWork.Save();
+
+            //    return View(id);
+            //}
+
+            //var stripeService = new SessionService();
+            //Session stripeSession = stripeService.Get(orderHeader.SessionId);
+
+            //if (stripeSession.PaymentStatus.ToLower() == "paid")
+            //{
+            //    _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(id, stripeSession.Id, stripeSession.PaymentIntentId);
+            //    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(id, CONST_OrderStatus.Approved, CONST_PaymentStatus.Approved);
+            //    _unitOfWork.Save();
+
+            //    var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
+            //        .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
+            //    _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
+            //    _unitOfWork.Save();
+            //}
+
+            //return View(id);
+        }
 
 
         #endregion
@@ -240,62 +324,50 @@ namespace BulkyWeb.Areas.Customer.Controllers
         #region PRIVATE METHODS
 
 
-        //private static double CalculateOrderTotal(ShoppingCartVM shopCartVM)
-        //{
-        //    foreach (var cart in shopCartVM.ShoppingCartItems)
-        //    {
-        //        cart.Price = GetPriceBasedOnQuantity(cart);
-        //        shopCartVM.OrderHeader.OrderTotal += (cart.Price * cart.Count);
-        //    }
+        IActionResult ResourceNotFound()
+        {
+            TempData["errorMessage"] = "Resource not found";
+            return RedirectToAction(nameof(Index));
+        }
 
-        //    return shopCartVM.OrderHeader.OrderTotal;
-        //}
+        private Session StripePayment(Order order)
+        {
+            var host = $"{Request.Scheme}://{Request.Host.Value}";
+            var options = new SessionCreateOptions
+            {
+                SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={order.Id}",
+                CancelUrl = $"{host}/Customer/Cart/Index",
+                LineItems = new List<SessionLineItemOptions>(),
+                Mode = "payment",
+            };
 
-        //private static double GetPriceBasedOnQuantity(ShopCart shoppingCartItem)
-        //{
-        //    if (shoppingCartItem.Product is null) throw new ArgumentException("Invalid Product");
+            var sessionLineItems = order.PurchaseItems
+                .Select(item => new SessionLineItemOptions
+                {
+                    PriceData = new SessionLineItemPriceDataOptions
+                    {
+                        UnitAmount = (long)(item.UnitPrice * 100),
+                        Currency = "brl",
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = item.Product?.Title
+                        }
+                    },
+                    Quantity = item.Quantity
+                })
+                .ToList();
+            options.LineItems.AddRange(sessionLineItems);
 
-        //    if (shoppingCartItem.Count <= 50) return shoppingCartItem.Product.PriceUp50;
-        //    else if (shoppingCartItem.Count <= 100) return shoppingCartItem.Product.PriceUp100;
-        //    else if (shoppingCartItem.Count > 100) return shoppingCartItem.Product.PriceAbove100;
-        //    else return 0;
-        //}
+            var service = new SessionService();
+            Session session = service.Create(options);
+            order.Payment.SessionId = session.Id;
+            order.Payment.PaymentIntentId = session.PaymentIntentId;
 
-        //private Session PaymentForStripe(ShoppingCartVM shopCartVM)
-        //{
-        //    var host = $"{Request.Scheme}://{Request.Host.Value}";
-        //    var options = new SessionCreateOptions
-        //    {
-        //        SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={shopCartVM.OrderHeader.Id}",
-        //        CancelUrl = $"{host}/Customer/Cart/Index",
-        //        LineItems = new List<SessionLineItemOptions>(),
-        //        Mode = "payment",
-        //    };
-
-        //    var sessionLineItems = shopCartVM.ShoppingCartItems
-        //        .Select(item => new SessionLineItemOptions
-        //        {
-        //            PriceData = new SessionLineItemPriceDataOptions
-        //            {
-        //                UnitAmount = (long)(item.Price * 100),
-        //                Currency = "brl",
-        //                ProductData = new SessionLineItemPriceDataProductDataOptions { Name = item.Product?.Title }
-        //            },
-        //            Quantity = item.Count
-        //        }).ToList();
-        //    options.LineItems.AddRange(sessionLineItems);
-
-        //    var service = new SessionService();
-        //    Session session = service.Create(options);
-        //    _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(
-        //        shopCartVM.OrderHeader.Id, session.Id, session.PaymentIntentId);
-        //    _unitOfWork.Save();
-        //    return session;
-        //}
+            _unitOfWork.OrderRepo.Update(order);
+            return session;
+        }
 
 
         #endregion
     }
-
-
 }

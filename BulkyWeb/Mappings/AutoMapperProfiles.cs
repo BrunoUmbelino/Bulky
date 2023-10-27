@@ -22,6 +22,9 @@ namespace BulkyWeb.Mappings
 
             CreateMap<ShopCartItem, ShopCartItemVM>();
             CreateMap<ShopCartItemVM, ShopCartItem>();
+
+            CreateMap<PurchaseItem, ShopCartItem>();
+            CreateMap<ShopCartItem, PurchaseItem>();
         }
     }
 }

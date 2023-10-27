@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using Bulky.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
 
 namespace Bulky.DataAccess.Repository.IRepository
@@ -16,6 +17,7 @@ namespace Bulky.DataAccess.Repository.IRepository
         IShopCartItemRepository ShopCartItemRepo { get; }
         IOrderHeaderRepository OrderHeaderRepo { get; }
         IOrderDetailRepository OrderDetailRepo { get; }
+        OrderRepository OrderRepo { get; }
 
         void Save();
         public IDbContextTransaction BeginTransaction();

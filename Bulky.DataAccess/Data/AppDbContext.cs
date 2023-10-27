@@ -1,6 +1,5 @@
 ﻿
 using Bulky.Models;
-using Bulky.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +17,10 @@ namespace Bulky.DataAccess.Data
         public DbSet<Company> Companies { get; set; }
 
         public DbSet<ShopCart> ShopCarts { get; set; }
-        public DbSet<Models.ShopCartItem> ShopCartItems { get; set; }
+        public DbSet<ShopCartItem> ShopCartItems { get; set; }
         public DbSet<OrderHeader> OrderHeaders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
+        public DbSet<Order> Orders { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

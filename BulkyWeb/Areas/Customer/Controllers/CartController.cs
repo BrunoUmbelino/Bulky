@@ -205,6 +205,9 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 _unitOfWork.OrderRepo.Add(order);
                 _unitOfWork.Save();
 
+                _unitOfWork.ShopCartRepo.Delete(shopCart);
+                _unitOfWork.Save();
+
                 bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
                 if (isCompanyAccout)
                 {
@@ -245,38 +248,19 @@ namespace BulkyWeb.Areas.Customer.Controllers
             try
             {
                 var order = _unitOfWork.OrderRepo.GetFunc(
-                filter: o => o.Id == id,
-                include: query => query.Include(o => o.Payment))
+                    filter: o => o.Id == id,
+                    include: query => query.Include(o => o.Payment))
                 ?? throw new Exception("Order not found");
-
-                var isOrderByCompany = order.Payment.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
-                if (isOrderByCompany)
-                {
-                    var shopCart = _unitOfWork.ShopCartRepo.GetFunc(s => s.ApplicationUserId == _userId);
-                    if (shopCart is not null)
-                        _unitOfWork.ShopCartRepo.Delete(shopCart);
-
-                    _unitOfWork.Save();
-
-                    return View(id);
-                }
 
                 var stripeSession = new SessionService().Get(order.Payment.SessionId);
                 if (stripeSession.PaymentStatus.ToLower() == "paid")
                 {
-                    order.Payment.SessionId = stripeSession.Id;
                     order.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
                     order.Payment.PaymentDate = DateTime.Now;
                     order.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
                     order.Status = CONST_OrderStatus.Approved;
                     order.UpdatedOn = DateTime.Now;
                     _unitOfWork.OrderRepo.Update(order);
-
-                    var shopCart = _unitOfWork.ShopCartRepo.GetFunc(s => s.ApplicationUserId == _userId);
-                    if (shopCart is not null)
-                        _unitOfWork.ShopCartRepo.Delete(shopCart);
-
-                    _unitOfWork.Save();
                 }
 
                 return View(id);

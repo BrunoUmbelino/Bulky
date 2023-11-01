@@ -1,7 +1,7 @@
 ﻿@model ShopCartVM
 
 <form method="post">
-    <input value="@Model.Delivery.DateDelivery" hidden />
+    <input value="@Model.Delivery.ExpectedDeliveryDate" hidden />
     <br />
     <div class="container">
         <div class="card shadow border-0">
@@ -90,12 +90,14 @@
                                 
                                 @foreach (var item in Model.ShopCartItems)
                                 {
-                                    <li class="list-group-item d-flex justify-content-center">
+                                    <li class="list-group-item d-flex align-content-between justify-content-between">
                                         <div class="p-1">
                                             <h6 class="my-0 text-secondary">@item.Product?.Title</h6>
                                             <small>Quantity: &nbsp; @item.Quantity</small>
                                         </div>
-                                        <span class="p-1 text-nowrap"> @((item.UnitPrice * item.Quantity).ToString("c")) </span>
+                                        <div>
+                                            <span class="p-1 text-nowrap"> @((item.UnitPrice * item.Quantity).ToString("c")) </span>
+                                        </div>
                                     </li>
                                 }
                                 <li class="list-group-item d-flex justify-content-between bg-light">
@@ -111,7 +113,7 @@
                 <div class="row">
                     <div class="col-12 col-md-8 pt-2">
                         <p class="text-primary fw-bold text-decoration-underline">
-                            Estimate Arrival Date: @Model.Delivery.DateDelivery.ToShortDateString()
+                            Estimate Arrival Date: @Model.Delivery.ExpectedDeliveryDate.ToShortDateString()
                         </p>
                     </div>
                     <div class="col-12 col-md-4">

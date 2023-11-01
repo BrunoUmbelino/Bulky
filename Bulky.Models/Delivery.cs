@@ -25,10 +25,18 @@ namespace Bulky.Models
         [StringLength(200)]
         public string CarrierName { get; set; } = string.Empty;
 
+        public DateTime? DateDelivery { get; set; }
+
         [Required]
-        public DateTime DateDelivery { get; set; }
+        public DateTime ExpectedDeliveryDate { get; private set; }
 
         [ForeignKey(nameof(OrderId))]
         public int OrderId { get; set; }
+
+
+        public void CalculateDeliveryForecast()
+        {
+            ExpectedDeliveryDate = DateTime.Now.AddDays(14);
+        }
     }
 }

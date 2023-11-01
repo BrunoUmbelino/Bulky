@@ -169,7 +169,7 @@ namespace BulkyWeb.Areas.Customer.Controllers
             if (shopCart == null) return ResourceNotFound();
 
             ShopCartVM shopCartVM = _mapper.Map<ShopCartVM>(shopCart);
-            shopCartVM.Delivery.DateDelivery = DateTime.Now.AddDays(14);
+            shopCartVM.Delivery.CalculateDeliveryForecast();
             return View(shopCartVM);
         }
 
@@ -196,8 +196,14 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     PurchaseItems = shopCart.ShopCartItems.Select(s => _mapper.Map<PurchaseItem>(s)).ToList(),
                     AddedIn = DateTime.Now,
                     TotalValue = shopCart.TotalValue
-
                 };
+                foreach (var item in order.PurchaseItems)
+                    item.OrderId = order.Id;
+                order.Delivery.OrderId = order.Id;
+                order.Payment.OrderId = order.Id;
+
+                _unitOfWork.OrderRepo.Add(order);
+                _unitOfWork.Save();
 
                 bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
                 if (isCompanyAccout)
@@ -212,9 +218,11 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 {
                     order.Status = CONST_OrderStatus.Pending;
                     order.Payment.PaymentStatus = CONST_PaymentStatus.Pending;
-                    _unitOfWork.OrderRepo.Update(order);
 
                     var stripeSession = StripePayment(order);
+                    order.Payment.SessionId = stripeSession.Id;
+
+                    _unitOfWork.OrderRepo.Update(order);
                     _unitOfWork.Save();
 
                     Response.Headers.Location = stripeSession.Url;
@@ -222,61 +230,11 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 }
 
                 return RedirectToAction(nameof(OrderConfirmation), new { id = order.Id });
-
-                //string? userId = (User.Identity as ClaimsIdentity)?
-                //    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                //if (userId == null) return NotFound();
-
-                //shopCartVM.ShoppingCartItems = _unitOfWork.ShopCartItemRepo
-                //    .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShopCart.Product)}");
-                //shopCartVM.OrderHeader.ApplicationUserId = userId;
-                //shopCartVM.OrderHeader.OrderDate = DateTime.Now;
-                //shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
-
-                //var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
-                //if (applicationUser is null) return NotFound();
-
-                //bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
-                //bool isCustomerAccout = !isCompanyAccout;
-                //if (isCustomerAccout)
-                //{
-                //    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.Pending;
-                //    shopCartVM.OrderHeader.OrderStatus = CONST_OrderStatus.Pending;
-                //}
-                //if (isCompanyAccout)
-                //{
-                //    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
-                //    shopCartVM.OrderHeader.OrderStatus = CONST_PaymentStatus.Approved;
-                //}
-                //_unitOfWork.OrderHeaderRepo.Add(shopCartVM.OrderHeader);
-                //_unitOfWork.Save();
-
-                //foreach (var item in shopCartVM.ShoppingCartItems)
-                //{
-                //    OrderDetail orderDetail = new()
-                //    {
-                //        ProductId = item.ProductId,
-                //        OrderHeaderId = shopCartVM.OrderHeader.Id,
-                //        Price = item.Price,
-                //        Count = item.Count,
-                //    };
-                //    _unitOfWork.OrderDetailRepo.Add(orderDetail);
-                //    _unitOfWork.Save();
-                //}
-
-                //if (isCustomerAccout)
-                //{
-                //    var session = PaymentForStripe(shopCartVM);
-                //    Response.Headers.Location = session.Url;
-                //    return new StatusCodeResult(303);
-                //}
-
-                //return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
             }
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Erro na criação de Ordem.");
-                TempData["errorMessage"] = $"{ex.Message}";
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -284,37 +242,51 @@ namespace BulkyWeb.Areas.Customer.Controllers
 
         public IActionResult OrderConfirmation(int id)
         {
-            return View();
-            //OrderHeader orderHeader = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == id);
-            //if (orderHeader == null) return NotFound();
+            try
+            {
+                var order = _unitOfWork.OrderRepo.GetFunc(
+                filter: o => o.Id == id,
+                include: query => query.Include(o => o.Payment))
+                ?? throw new Exception("Order not found");
 
-            //var isOrderByCompany = orderHeader.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
-            //if (isOrderByCompany)
-            //{
-            //    var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
-            //        .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-            //    _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
-            //    _unitOfWork.Save();
+                var isOrderByCompany = order.Payment.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
+                if (isOrderByCompany)
+                {
+                    var shopCart = _unitOfWork.ShopCartRepo.GetFunc(s => s.ApplicationUserId == _userId);
+                    if (shopCart is not null)
+                        _unitOfWork.ShopCartRepo.Delete(shopCart);
 
-            //    return View(id);
-            //}
+                    _unitOfWork.Save();
 
-            //var stripeService = new SessionService();
-            //Session stripeSession = stripeService.Get(orderHeader.SessionId);
+                    return View(id);
+                }
 
-            //if (stripeSession.PaymentStatus.ToLower() == "paid")
-            //{
-            //    _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(id, stripeSession.Id, stripeSession.PaymentIntentId);
-            //    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(id, CONST_OrderStatus.Approved, CONST_PaymentStatus.Approved);
-            //    _unitOfWork.Save();
+                var stripeSession = new SessionService().Get(order.Payment.SessionId);
+                if (stripeSession.PaymentStatus.ToLower() == "paid")
+                {
+                    order.Payment.SessionId = stripeSession.Id;
+                    order.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
+                    order.Payment.PaymentDate = DateTime.Now;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
+                    order.Status = CONST_OrderStatus.Approved;
+                    order.UpdatedOn = DateTime.Now;
+                    _unitOfWork.OrderRepo.Update(order);
 
-            //    var shoppingCartsForRemove = _unitOfWork.ShopCartItemRepo
-            //        .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-            //    _unitOfWork.ShopCartItemRepo.DeleteRange(shoppingCartsForRemove);
-            //    _unitOfWork.Save();
-            //}
+                    var shopCart = _unitOfWork.ShopCartRepo.GetFunc(s => s.ApplicationUserId == _userId);
+                    if (shopCart is not null)
+                        _unitOfWork.ShopCartRepo.Delete(shopCart);
 
-            //return View(id);
+                    _unitOfWork.Save();
+                }
+
+                return View(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro na Confirmação de Ordem.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
 
@@ -358,13 +330,8 @@ namespace BulkyWeb.Areas.Customer.Controllers
                 .ToList();
             options.LineItems.AddRange(sessionLineItems);
 
-            var service = new SessionService();
-            Session session = service.Create(options);
-            order.Payment.SessionId = session.Id;
-            order.Payment.PaymentIntentId = session.PaymentIntentId;
-
-            _unitOfWork.OrderRepo.Update(order);
-            return session;
+            Session paymentSession = new SessionService().Create(options);
+            return paymentSession;
         }
 
 

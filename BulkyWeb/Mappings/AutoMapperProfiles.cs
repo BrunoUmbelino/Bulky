@@ -23,8 +23,10 @@ namespace BulkyWeb.Mappings
             CreateMap<ShopCartItem, ShopCartItemVM>();
             CreateMap<ShopCartItemVM, ShopCartItem>();
 
-            CreateMap<PurchaseItem, ShopCartItem>();
-            CreateMap<ShopCartItem, PurchaseItem>();
+            CreateMap<ShopCartItem, PurchaseItem>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => 0));
+
+            CreateMap<Order, OrderVM>();
         }
     }
 }

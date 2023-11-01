@@ -24,11 +24,11 @@ namespace Bulky.Models
         public decimal TotalValue { get; set; }
 
         [MaxLength(100)]
-        public string Status { get; set; } = String.Empty;
+        public string Status { get; set; } = string.Empty;
 
-        public DateTime AddedIn { get; set; }
+        public DateTime AddedIn { get; set; } = DateTime.Now;
 
-        public DateTime UpdatedOn { get; set; }
+        public DateTime? UpdatedOn { get; set; } 
 
         //------------
         public ApplicationUser? ApplicationUser { get; set; }

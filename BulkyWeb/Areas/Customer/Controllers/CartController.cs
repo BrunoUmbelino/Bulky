@@ -252,15 +252,20 @@ namespace BulkyWeb.Areas.Customer.Controllers
                     include: query => query.Include(o => o.Payment))
                 ?? throw new Exception("Order not found");
 
-                var stripeSession = new SessionService().Get(order.Payment.SessionId);
-                if (stripeSession.PaymentStatus.ToLower() == "paid")
+                bool isOrderByCompany = order.Payment.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
+                if (!isOrderByCompany)
                 {
-                    order.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
-                    order.Payment.PaymentDate = DateTime.Now;
-                    order.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
-                    order.Status = CONST_OrderStatus.Approved;
-                    order.UpdatedOn = DateTime.Now;
-                    _unitOfWork.OrderRepo.Update(order);
+                    var stripeSession = new SessionService().Get(order.Payment.SessionId);
+                    if (stripeSession.PaymentStatus.ToLower() == "paid")
+                    {
+                        order.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
+                        order.Payment.PaymentDate = DateTime.Now;
+                        order.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
+                        order.Status = CONST_OrderStatus.Approved;
+                        order.UpdatedOn = DateTime.Now;
+                        _unitOfWork.OrderRepo.Update(order);
+                        _unitOfWork.Save();
+                    }
                 }
 
                 return View(id);

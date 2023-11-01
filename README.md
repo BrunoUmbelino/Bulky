@@ -14,6 +14,7 @@ Este projeto tem o proposito de aprendizado e foi desenvolvido junto a realizaç
 
 ### TODO
 
-* Refatorar modelos
-* Adicionar testes automatizados
-* Alterar o banco de dados para PostgreSQL, afim de conseguir mais opções de hosteamento free.
+* [x] Refatorar modelos
+* [ ] Adicionar testes automatizados
+* [ ] Alterar o banco de dados para PostgreSQL, afim de conseguir mais opções de hosteamento free
+

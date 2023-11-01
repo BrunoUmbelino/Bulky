@@ -1,12 +1,9 @@
-﻿using AutoMapper;
-using Bulky.DataAccess.Repository.IRepository;
+﻿using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Stripe;
 using Stripe.Checkout;
 using System.Security.Claims;
@@ -19,15 +16,11 @@ namespace BulkyWeb.Areas.Admin.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<OrderController> _logger;
-        private readonly IMapper _mapper;
-        private readonly UserManager<IdentityUser> _userManager;
 
-        public OrderController(IUnitOfWork unitOfWork, ILogger<OrderController> logger, IMapper mapper, UserManager<IdentityUser> userManager)
+        public OrderController(IUnitOfWork unitOfWork, ILogger<OrderController> logger)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
-            _mapper = mapper;
-            _userManager = userManager;
         }
 
         #region ACTIONS
@@ -40,50 +33,51 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult Details(int orderId)
         {
-            if (orderId == 0) return ResourceNotFound();
-            var order = _unitOfWork.OrderRepo.GetFunc(
-                filter: o => o.Id == orderId,
-                include: query => query
-                 .Include(o => o.ApplicationUser)
-                 .Include(o => o.PurchaseItems).ThenInclude(i => i.Product)
-                 .Include(o => o.Delivery).ThenInclude(d => d.Address)
-                 .Include(o => o.Payment));
-            if (order == null) return ResourceNotFound();
+            if (orderId == 0) return NotFound();
+            var orderHeader = _unitOfWork.OrderHeaderRepo.Get(oh => oh.Id == orderId, includeProperties: $"{nameof(OrderHeader.ApplicationUser)}");
+            if (orderHeader == null) return NotFound();
+            var orderDetails = _unitOfWork.OrderDetailRepo.GetAll(u => u.OrderHeaderId == orderId, includeProperties: $"{nameof(OrderDetail.Product)}");
+            if (!orderDetails.Any()) return NotFound();
 
-            return View(_mapper.Map<OrderVM>(order));
+            OrderVM orderVM = new()
+            {
+                OrderHeader = orderHeader,
+                OrderDetails = orderDetails
+            };
+
+            return View(orderVM);
         }
 
         [HttpPost]
         [Authorize(Roles = $"{CONST_Roles.Admin},{CONST_Roles.Employee}")]
-        public IActionResult UpdateDeliveryDetails(OrderVM ordeVM)
+        public IActionResult UpdateOrderDetails(OrderVM orderVM)
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(
-                filter: o => o.Id == ordeVM.Id,
-                include: query => query
-                 .Include(o => o.Delivery));
-                if (orderDb == null) return ResourceNotFound();
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
+                if (orderHeaderDB == null) return NotFound();
 
-                orderDb.Delivery.RecipientName = ordeVM.Delivery.RecipientName;
-                orderDb.Delivery.PhoneNumber = ordeVM.Delivery.PhoneNumber;
-                orderDb.Delivery.Address.StreetAddress = ordeVM.Delivery.Address.StreetAddress;
-                orderDb.Delivery.Address.City = ordeVM.Delivery.Address.City;
-                orderDb.Delivery.Address.State = ordeVM.Delivery.Address.State;
-                orderDb.Delivery.Address.PostalCode = ordeVM.Delivery.Address.PostalCode;
-                orderDb.UpdatedOn = DateTime.Now;
+                orderHeaderDB.Name = orderVM.OrderHeader.Name;
+                orderHeaderDB.PhoneNumber = orderVM.OrderHeader.PhoneNumber;
+                orderHeaderDB.StreetAddress = orderVM.OrderHeader.StreetAddress;
+                orderHeaderDB.City = orderVM.OrderHeader.City;
+                orderHeaderDB.State = orderVM.OrderHeader.State;
+                orderHeaderDB.PostalCode = orderVM.OrderHeader.PostalCode;
+                if (!String.IsNullOrEmpty(orderVM.OrderHeader.TrackingNumber))
+                    orderHeaderDB.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
+                if (!String.IsNullOrEmpty(orderVM.OrderHeader.Carrier))
+                    orderHeaderDB.Carrier = orderVM.OrderHeader.Carrier;
 
-                _unitOfWork.OrderRepo.Update(orderDb);
+                _unitOfWork.OrderHeaderRepo.Update(orderHeaderDB);
                 _unitOfWork.Save();
 
-                TempData["successMessage"] = "Order updated successfully";
-                return RedirectToAction(nameof(Details), new { orderid = orderDb.Id });
+                TempData["successMessage"] = "Order Detail updated successfully";
+                return RedirectToAction(nameof(Details), new { orderId = orderHeaderDB.Id });
             }
             catch (Exception ex)
             {
-                _logger.LogError(null, ex, "Error in UpdateOrder");
-                TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
-                return RedirectToAction(nameof(Index));
+                _logger.LogError(0, ex, "Erro em UpdateOrderDetails");
+                return BadRequest(ex.Message);
             }
         }
 
@@ -93,11 +87,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(filter: o => o.Id == orderId);
-                if (orderDb == null) return ResourceNotFound();
-                orderDb.Status = CONST_OrderStatus.InProcess;
-
-                _unitOfWork.OrderRepo.Update(orderDb);
+                _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(orderId, CONST_OrderStatus.InProcess);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order Detail is in process";
@@ -109,6 +99,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
                 return RedirectToAction(nameof(Details), new { orderId });
             }
+
         }
 
         [HttpPost]
@@ -117,31 +108,27 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(
-                    filter: o => o.Id == orderVM.Id,
-                    include: query => query
-                     .Include(o => o.Delivery)
-                     .Include(o => o.Payment));
-                if (orderDb == null) return ResourceNotFound();
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
+                if (orderHeaderDB == null) return NotFound();
 
-                orderDb.Delivery.TrackingNumber = orderVM.Delivery.TrackingNumber;
-                orderDb.Delivery.CarrierName = orderVM.Delivery.CarrierName;
-                orderDb.Status = CONST_OrderStatus.Shipped;
-                orderDb.Delivery.DateDelivery = DateTime.Now;
-                if (orderDb.Payment.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
-                    orderDb.Payment.PaymentDueDate = DateTime.Now.AddDays(30);
+                orderHeaderDB.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
+                orderHeaderDB.Carrier = orderVM.OrderHeader.Carrier;
+                orderHeaderDB.OrderStatus = CONST_OrderStatus.Shipped;
+                orderHeaderDB.ShippingDate = DateTime.Now;
+                if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
+                    orderHeaderDB.PaymentDueDate = DateTime.Now.AddDays(30);
 
-                _unitOfWork.OrderRepo.Update(orderDb);
+                _unitOfWork.OrderHeaderRepo.Update(orderHeaderDB);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order Shipped Successfuly";
-                return RedirectToAction(nameof(Details), new { orderId = orderVM.Id });
+                return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Error in ShipOrder");
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
-                return RedirectToAction(nameof(Details), new { orderId = orderVM.Id });
+                return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
         }
 
@@ -150,68 +137,52 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(
-                    filter: o => o.Id == orderVM.Id,
-                    include: query => query
-                     .Include(o => o.Delivery)
-                     .Include(o => o.Payment));
-                if (orderDb == null) return ResourceNotFound();
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
+                if (orderHeaderDB == null) return NotFound();
 
-                if (orderDb.Payment.PaymentStatus == CONST_PaymentStatus.Approved)
+                if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.Approved)
                 {
                     var refundOptions = new RefundCreateOptions
                     {
                         Reason = RefundReasons.RequestedByCustomer,
-                        PaymentIntent = orderDb.Payment.PaymentIntentId
+                        PaymentIntent = orderHeaderDB.PaymentIntentId
                     };
-                    var Refund = new RefundService().Create(refundOptions);
 
-                    orderDb.Payment.PaymentStatus = CONST_PaymentStatus.Refunded;
-                    orderDb.Status = CONST_OrderStatus.Cancelled;
+                    var stripeRefundService = new RefundService();
+                    Refund refund = stripeRefundService.Create((refundOptions));
+
+                    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(
+                        orderHeaderDB.Id, CONST_OrderStatus.Cancelled, CONST_PaymentStatus.Refunded);
                 }
                 else
                 {
-                    orderDb.Payment.PaymentStatus = CONST_PaymentStatus.Cancelled;
-                    orderDb.Status = CONST_OrderStatus.Cancelled;
+                    _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(
+                        orderHeaderDB.Id, CONST_OrderStatus.Cancelled, CONST_PaymentStatus.Cancelled);
                 }
-
-                _unitOfWork.OrderRepo.Update(orderDb);
                 _unitOfWork.Save();
 
                 TempData["successMessage"] = "Order cancelled successfully";
-                return RedirectToAction(nameof(Details), new { orderId = orderVM.Id });
+                return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Error in CancelOrder");
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
-                return RedirectToAction(nameof(Details), new{ orderId = orderVM.Id });
+                return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
         }
 
         [HttpPost]
-        public IActionResult PayNow(int orderId)
+        public IActionResult PayNowForCompanyOrder(OrderVM orderVM)
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(
-                    filter: o => o.Id == orderId,
-                    include: query => query
-                     .Include(o => o.Payment)
-                     .Include(o=>o.PurchaseItems).ThenInclude(i=>i.Product));
-                if (orderDb == null) return ResourceNotFound();
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderVM.OrderHeader.Id);
+                if (orderHeaderDB == null) return NotFound();
+                var orderDetailsDB = _unitOfWork.OrderDetailRepo.GetAll(o => o.OrderHeaderId == orderVM.OrderHeader.Id, includeProperties: $"{nameof(OrderDetail.Product)}");
+                if (orderDetailsDB == null) return NotFound();
 
-                var session = PaymentForStripe(orderDb);
-                if (session.Id is null)
-                {
-                    TempData["errorMessage"] = "Payment failed";
-                    return RedirectToAction(nameof(Details), new { orderId });
-                }
-                orderDb.Payment.SessionId = session.Id;
-
-                _unitOfWork.OrderRepo.Update(orderDb);
-                _unitOfWork.Save();
-
+                var session = PaymentForStripe(new OrderVM { OrderHeader = orderHeaderDB, OrderDetails = orderDetailsDB });
                 Response.Headers.Location = session.Url;
                 return new StatusCodeResult(303);
             }
@@ -219,49 +190,29 @@ namespace BulkyWeb.Areas.Admin.Controllers
             {
                 _logger.LogError(0, ex, "Error in PayNowForCompanyOrder");
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
-                return RedirectToAction(nameof(Details), new { orderId });
+                return RedirectToAction(nameof(Details), new { orderId = orderVM.OrderHeader.Id });
             }
+
         }
 
-        public async Task<IActionResult> PaymentConfirmation(int orderId)
+        public IActionResult PaymentConfirmation(int orderId)
         {
             try
             {
-                var orderDb = _unitOfWork.OrderRepo.GetFunc(
-                    filter: o => o.Id == orderId,
-                    include: query => query
-                     .Include(o => o.Payment)
-                     .Include(o => o.PurchaseItems).ThenInclude(i => i.Product)
-                     .Include(o => o.ApplicationUser));
-                if (orderDb?.Payment == null || orderDb?.PurchaseItems == null || orderDb?.ApplicationUser == null) 
-                    return ResourceNotFound();
+                var orderHeaderDB = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == orderId);
+                if (orderHeaderDB == null) return NotFound();
 
-                if (orderDb.Payment.PaymentStatus == CONST_PaymentStatus.Approved)
+                if (orderHeaderDB.PaymentStatus == CONST_PaymentStatus.DelayedPayment)
                 {
-                    TempData["errorMessage"] = "Order has already been paid";
-                    return RedirectToAction(nameof(Details), new { orderId });
-                }
+                    var stripeService = new SessionService();
+                    var stripeSession = stripeService.Get(orderHeaderDB.SessionId);
 
-                var stripeSession = new SessionService().Get(orderDb.Payment.SessionId);
-                if (stripeSession.PaymentStatus.ToLower() == "paid")
-                {
-                    orderDb.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
-                    orderDb.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
-                    orderDb.Payment.PaymentDate = DateTime.Now;
-                    orderDb.UpdatedOn = DateTime.Now;
-
-                    var userNotCompanyRole = !await _userManager.IsInRoleAsync(orderDb.ApplicationUser, CONST_Roles.Company);
-                    if (userNotCompanyRole)
+                    if (stripeSession.PaymentStatus.ToLower() == "paid")
                     {
-                        orderDb.Status = CONST_OrderStatus.Approved;
-                    }
-
-                    _unitOfWork.OrderRepo.Update(orderDb);
-                    _unitOfWork.Save();
-                } else
-                {
-                    TempData["errorMessage"] = "Payment failed";
-                    return RedirectToAction(nameof(Details), new { orderId });
+                        _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(orderId, stripeSession.Id, stripeSession.PaymentIntentId);
+                        _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(orderId, paymentStatus: CONST_PaymentStatus.Approved);
+                        _unitOfWork.Save();
+                    };
                 }
 
                 return View(orderId);
@@ -272,6 +223,7 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 TempData["errorMessage"] = "Something went wrong but don't be sad, it wasn't your fault.";
                 return RedirectToAction(nameof(Details), new { orderId });
             }
+
         }
 
 
@@ -282,80 +234,66 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [Route("API/[area]/[controller]/GetAll")]
         public IActionResult GetAll(string? filterStatus = "all")
         {
-            IEnumerable<Order> orders;
+            IEnumerable<OrderHeader> orderHeaders;
+
             if (User.IsInRole(CONST_Roles.Admin) || User.IsInRole(CONST_Roles.Employee))
-            {
-                orders = _unitOfWork.OrderRepo.GetAllFunc(
-                    include: query => query
-                     .Include(o => o.ApplicationUser)
-                     .Include(o => o.PurchaseItems)
-                     .Include(o => o.Delivery)
-                     .Include(o => o.Payment));
-            }
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(includeProperties: $"{nameof(OrderHeader.ApplicationUser)}").ToList();
             else
             {
                 var userId = (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                orders = _unitOfWork.OrderRepo.GetAllFunc(
-                    filter: o => o.ApplicationUserId == userId,
-                    include: query => query
-                    .Include(o => o.ApplicationUser)
-                    .Include(o => o.PurchaseItems)
-                    .Include(o => o.Delivery)
-                    .Include(o => o.Payment));
+                orderHeaders = _unitOfWork.OrderHeaderRepo.GetAll(o => o.ApplicationUserId == userId, includeProperties: $"{nameof(OrderHeader.ApplicationUser)}");
             }
 
-            var filteredOrders = filterStatus switch
+            var filteredOrderHeaders = filterStatus switch
             {
-                "all" => orders,
-                "inProcess" => orders.Where(o => o.Status == CONST_OrderStatus.InProcess),
-                "pending" => orders.Where(o => o.Status == CONST_OrderStatus.Pending),
-                "approved" => orders.Where(o => o.Status == CONST_OrderStatus.Approved),
-                "completed" => orders.Where(o => o.Status == CONST_OrderStatus.Shipped),
-                _ => orders
+                "all" => orderHeaders,
+                "inProcess" => orderHeaders.Where(o => o.OrderStatus == CONST_OrderStatus.InProcess),
+                "pending" => orderHeaders.Where(o => o.OrderStatus == CONST_OrderStatus.Pending),
+                "approved" => orderHeaders.Where(o => o.OrderStatus == CONST_OrderStatus.Approved),
+                "completed" => orderHeaders.Where(o => o.OrderStatus == CONST_OrderStatus.Shipped),
+                _ => orderHeaders
             };
 
-            return Json(new { success = true, data = filteredOrders });
+            return Json(new { success = true, data = filteredOrderHeaders });
         }
 
         #endregion
 
-
         #region PRIVATE METHODS
 
 
-        private Session PaymentForStripe(Order order)
+        private Session PaymentForStripe(OrderVM orderVM)
         {
             var host = $"{Request.Scheme}://{Request.Host.Value}";
             var options = new SessionCreateOptions
             {
-                SuccessUrl = $"{host}/Admin/Order/PaymentConfirmation?orderId={order.Id}",
-                CancelUrl = $"{host}/Admin/Order/details?orderId={order.Id}",
+                SuccessUrl = $"{host}/Admin/Order/PaymentConfirmation?orderId={orderVM.OrderHeader.Id}",
+                CancelUrl = $"{host}/Admin/Order/details?orderId={orderVM.OrderHeader.Id}",
                 LineItems = new List<SessionLineItemOptions>(),
                 Mode = "payment",
             };
-            var sessionLineItems = order.PurchaseItems
+            var sessionLineItems = orderVM.OrderDetails
                 .Select(item => new SessionLineItemOptions
                 {
                     PriceData = new SessionLineItemPriceDataOptions
                     {
-                        UnitAmount = (long)(item.UnitPrice * 100),
+                        UnitAmount = (long)(item.Price * 100),
                         Currency = "brl",
                         ProductData = new SessionLineItemPriceDataProductDataOptions { Name = item.Product?.Title }
                     },
-                    Quantity = item.Quantity
+                    Quantity = item.Count
                 })
                 .ToList();
 
             options.LineItems.AddRange(sessionLineItems);
 
-            Session stripeSession = new SessionService().Create(options);
-            return stripeSession;
-        }
+            var stripeService = new SessionService();
+            Session stripeSession = stripeService.Create(options);
+            _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(
+                orderVM.OrderHeader.Id, stripeSession.Id, stripeSession.PaymentIntentId);
+            _unitOfWork.Save();
 
-        public IActionResult ResourceNotFound()
-        {
-            TempData["errorMessage"] = "Resource not found";
-            return RedirectToAction(nameof(Index));
+            return stripeSession;
         }
 
 

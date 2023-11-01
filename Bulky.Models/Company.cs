@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bulky.Models
 {
@@ -9,17 +8,14 @@ namespace Bulky.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(20)]
-        public string CNPJ { get; set; } = string.Empty;
+        public string? StreetAddress { get; set; }
+        
+        public string? City { get; set; }
 
-        [Required]
-        public int AddressId { get; set; }
+        public string? State { get; set; }
 
-        [ForeignKey(nameof(AddressId))]
-        public virtual Address? Address { get; set; }
+        public string? PostalCode { get; set; }
     }
 }

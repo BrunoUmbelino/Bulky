@@ -22,10 +22,10 @@ namespace Bulky.DataAccess.Repository
                 productDB.Description = product.Description;
                 productDB.ISBN13 = product.ISBN13;
                 productDB.Author = product.Author;
-                productDB.PriceList = product.PriceList;
-                productDB.PriceStandart = product.PriceStandart;
-                productDB.Price50More = product.Price50More;
-                productDB.Price100More = product.Price100More;
+                productDB.ListPrice = product.ListPrice;
+                productDB.PriceUp50 = product.PriceUp50;
+                productDB.PriceUp100 = product.PriceUp100;
+                productDB.PriceAbove100 = product.PriceAbove100;
                 productDB.CategoryId = product.CategoryId;
                 productDB.Images = product.Images;
 

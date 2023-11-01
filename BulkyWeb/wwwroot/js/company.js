@@ -7,11 +7,10 @@ function loadDataTable() {
         "ajax": { url: "/api/admin/company/getall" },
         "columns": [
             { data: "name" },
-            { data: "cnpj" },
-            { data: "address.streetAddress" },
-            { data: "address.city" },
-            { data: "address.state" },
-            { data: "address.postalCode" },
+            { data: "streetAddress" },
+            { data: "city" },
+            { data: "state" },
+            { data: "postalCode" },
             {
                 data: "id",
                 render: (data) => {

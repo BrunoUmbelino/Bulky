@@ -1,12 +1,11 @@
-﻿using AutoMapper;
-using Bulky.DataAccess.Repository.IRepository;
+﻿using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
 using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Tokens; 
 
 namespace BulkyWeb.Areas.Admin.Controllers
 {
@@ -14,17 +13,13 @@ namespace BulkyWeb.Areas.Admin.Controllers
     [Authorize(Roles = CONST_Roles.Admin)]
     public class ProductController : Controller
     {
-        private readonly ILogger<ProductController> _logger;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IWebHostEnvironment _webHostEnvironment;
-        private readonly IMapper _mapper;
 
-        public ProductController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment, IMapper mapper, ILogger<ProductController> logger)
+        public ProductController(IUnitOfWork unitOfWork, IWebHostEnvironment webHostEnvironment)
         {
             _unitOfWork = unitOfWork;
             _webHostEnvironment = webHostEnvironment;
-            _mapper = mapper;
-            _logger = logger;
         }
 
 
@@ -32,17 +27,23 @@ namespace BulkyWeb.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            var products = _unitOfWork.ProductRepo
+                .GetAll(includeProperties: "Category");
+            return View(products);
         }
 
         public IActionResult Upsert(int? id)
         {
-            var productVM = new ProductVM();
+            var productVM = new ProductVM()
+            {
+                CategoryList = PopulateCategoryList()
+            };
 
             if (id.HasValue)
-                productVM = _mapper.Map<ProductVM>(
-                    _unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: $"{nameof(Product.Images)}"));
-            productVM.CategoryList = PopulateCategoryList();
+            {
+                productVM.Product = _unitOfWork.ProductRepo.Get(p => p.Id == id, includeProperties: $"{nameof(Product.Images)}");
+                return View(productVM);
+            }
 
             return View(productVM);
         }
@@ -50,49 +51,61 @@ namespace BulkyWeb.Areas.Admin.Controllers
         [HttpPost]
         public IActionResult Upsert(ProductVM productVM, List<IFormFile>? files)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    productVM.CategoryList = PopulateCategoryList();
-                    return View(productVM);
-                }
-
-                string actionMessage;
-                var product = _mapper.Map<Product>(productVM);
-                if (product.Id == 0)
-                {
-                    _unitOfWork.ProductRepo.Add(product);
-                    actionMessage = "created";
-                }
-                else
-                {
-                    _unitOfWork.ProductRepo.Update(product);
-                    actionMessage = "updated";
-                }
-                _unitOfWork.Save();
-
-                if (files != null)
-                {
-                    product.Images = SaveImages(product.Id, files);
-                    _unitOfWork.ProductRepo.Update(product);
-                    _unitOfWork.Save();
-                }
-
-                TempData["successMessage"] = $"Product {product.Title} {actionMessage} successfuly";
-                return RedirectToAction(nameof(Index));
+                productVM.CategoryList = PopulateCategoryList();
+                return View(productVM);
             }
-            catch (Exception ex)
+
+            string actionMessage;
+            if (productVM.Product.Id == 0)
             {
-                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
-                _logger.LogError(0, ex, "Erro no processo de UPSERT do Produto.");
-                return RedirectToAction(nameof(Index));
+                _unitOfWork.ProductRepo.Add(productVM.Product);
+                actionMessage = "created";
             }
+            else
+            {
+                _unitOfWork.ProductRepo.Update(productVM.Product);
+                actionMessage = "updated";
+            }
+            _unitOfWork.Save();
+
+            if (files != null) SaveProductImagesAndFiles(files, productVM.Product);
+            
+
+            _unitOfWork.Save();
+            TempData["successMessage"] = $"Product {productVM.Product.Title} {actionMessage} successfuly";
+
+            return RedirectToAction("Index");
         }
 
-        public IActionResult DeleteOneImage(int imageId)
+        public IActionResult Delete(int? id)
         {
-            var image = _unitOfWork.ProductImageRepo.Get(i => i.Id == imageId);
+            if (id == 0 || id == null) return NotFound();
+            var product = _unitOfWork.ProductRepo.Get(p => p.Id == id);
+            if (product == null) return NotFound();
+
+            return View(product);
+        }
+
+        [HttpPost, ActionName("Delete")]
+        public IActionResult DeletePost(int? id)
+        {
+            if (id == 0 || id == null) return NotFound();
+            var product = _unitOfWork.ProductRepo.Get(p => p.Id == id);
+            if (product == null) return NotFound();
+
+
+
+            _unitOfWork.ProductRepo.Delete(product);
+            _unitOfWork.Save();
+            TempData["successMessage"] = $"Product {product.Title} removed successfuly";
+            return RedirectToAction("Index");
+        }
+
+        public IActionResult DeleteImage(int imageId)
+        {
+            var image = _unitOfWork.ProductImageRepo.Get(i=>i.Id == imageId);
             if (image == null || image.ImageUrl.IsNullOrEmpty())
             {
                 TempData["errorMessage"] = "Resource not found";
@@ -130,9 +143,20 @@ namespace BulkyWeb.Areas.Admin.Controllers
         {
             var product = _unitOfWork.ProductRepo.Get(p => p.Id == id);
             if (product == null)
+            {
                 return Json(new { success = false, message = "Error while deleting" });
-            if (product.Images.Any())
-                DeleteImages(product.Id);
+            }
+
+            string productPath = @$"images\products\product-{product.Id}";
+            string finalPath = Path.Combine(_webHostEnvironment.WebRootPath, productPath);
+            if (!Directory.Exists(finalPath)) return NotFound();
+
+            string[] filePaths = Directory.GetFiles(finalPath);
+            foreach (string filePath in filePaths)
+            {
+                System.IO.File.Delete(filePath);
+            }
+            Directory.Delete(finalPath);
 
             _unitOfWork.ProductRepo.Delete(product);
             _unitOfWork.Save();
@@ -156,15 +180,14 @@ namespace BulkyWeb.Areas.Admin.Controllers
                 });
         }
 
-        private List<ProductImage> SaveImages(int productId, List<IFormFile> files)
+        private void SaveProductImagesAndFiles(List<IFormFile> files, Product product)
         {
             var wwwRootPath = _webHostEnvironment.WebRootPath;
 
-            List<ProductImage> newProductImages = new(); 
             foreach (var file in files)
             {
                 string newFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-                string productPath = @$"images\products\product-{productId}";
+                string productPath = @$"images\products\product-{product.Id}";
                 string finalPath = Path.Combine(wwwRootPath, productPath);
 
                 if (!Directory.Exists(finalPath)) Directory.CreateDirectory(finalPath);
@@ -173,28 +196,15 @@ namespace BulkyWeb.Areas.Admin.Controllers
                     file.CopyTo(fileStream);
                 }
 
-                newProductImages.Add(new ProductImage()
+                product.Images.Add(new ProductImage()
                 {
                     ImageUrl = @$"\{productPath}\{newFileName}",
-                    ProductId = productId
+                    ProductId = product.Id
                 });
+
+                _unitOfWork.ProductRepo.Update(product);
+                _unitOfWork.Save();
             }
-
-            return newProductImages;
-        }
-
-        private void DeleteImages(int productId)
-        {
-            string productPath = @$"images\products\product-{productId}";
-            string finalPath = Path.Combine(_webHostEnvironment.WebRootPath, productPath);
-            if (!Directory.Exists(finalPath)) return;
-
-            string[] filePaths = Directory.GetFiles(finalPath);
-            foreach (string filePath in filePaths)
-            {
-                System.IO.File.Delete(filePath);
-            }
-            Directory.Delete(finalPath);
         }
 
         #endregion

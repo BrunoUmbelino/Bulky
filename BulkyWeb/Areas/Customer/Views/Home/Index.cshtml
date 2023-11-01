@@ -1,11 +1,10 @@
-﻿@model IEnumerable<ProductVM>
+﻿@model IEnumerable<Product>
 
 @{
     ViewData["Title"] = "Home";
 }
 
-<div class="row pb-3"> 
-    
+<div class="row pb-3">
     @foreach (var product in Model)
     {
         <div class="col-lg-3 col-sm-6">
@@ -14,11 +13,11 @@
                     <div class="card border-0 p-4 shadow border-top border-5 rounded">
                         @if (product.Images.Any())
                         {
-                            <img src="@product.Images.First().ImageUrl" class="card-img-top rounded p-lg-4 p-sm-1" style="height: 300px" />
+                            <img src="@product.Images.First().ImageUrl" class="card-img-top rounded" style="height: 300px" />
                         }
                         else
                         {
-                            <img src="https://placehold.co/500x600/png" class="card-img-top rounded p-lg-4 p-sm-1" />
+                            <img src="https://placehold.co/500x600/png" />
                         }
                         <div class="card-body pb-0">
                             <div class="pl-1">
@@ -31,16 +30,12 @@
                             </div>
                             <div class="pl-1">
                                 <p class="text-dark text-opacity-75 text-center m-0">
-<<<<<<< HEAD
-                                    <span class="text-decoration-line-through">@product.PriceList.ToString("c")</span>
-=======
-                                    <span class="text-decoration-line-through">@product.PriceList.ToString("c"))</span>
->>>>>>> e3132a7 (.)
+                                    <span class="text-decoration-line-through">@product.ListPrice.ToString("c")</span>
                                 </p>
                             </div>
                             <div class="pl-1">
                                 <p class="text-dark text- text-center m-0">
-                                    As low as: <span>@product.Price100More.ToString("c")</span>
+                                    As low as: <span>@product.PriceAbove100.ToString("c")</span>
                                 </p>
                             </div>
                         </div>

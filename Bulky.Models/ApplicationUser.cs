@@ -20,13 +20,12 @@ namespace Bulky.Models
 
         [NotMapped]
         public string Role { get; set; } = null!;
-
         [NotMapped]
         public string RoleId { get; set; } = null!;
 
-        [ForeignKey(nameof(CompanyId))]
         public int? CompanyId { get; set; }
         
+        [ForeignKey(nameof(CompanyId))]
         [ValidateNever]
         public Company? Company { get; set; }
     }

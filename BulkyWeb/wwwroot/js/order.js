@@ -10,12 +10,11 @@ function loadDataTable(filterStatus) {
     dataTable = $('#OrderTable').DataTable({
         "ajax": { url: `/API/Admin/Order/GetAll?filterStatus=${filterStatus}` },
         "columns": [
-            { data: "id", "width": "10%" },
+            { data: "id", "width": "20%" },
+            { data: "name", "width": "15%" },
+            { data: "phoneNumber", "width": "20%" },
             { data: "applicationUser.email", "width": "10%" },
-            { data: "delivery.recipientName", "width": "10%" },
-            { data: "delivery.phoneNumber", "width": "10%" },
-            { data: "status", "width": "10%" },
-            { data: "totalValue", width: "10%", render: $.fn.dataTable.render.number(',', '.', 2, 'R$ ') },
+            { data: "orderTotal", width: "15%" },
             {
                 data: "id",
                 "width": "10%",

@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Bulky.Models
 {
@@ -9,14 +9,11 @@ namespace Bulky.Models
         public int Id { get; set; }
 
         [Required]
-<<<<<<< HEAD
-        [MaxLength(200)]
-=======
-        [StringLength(200)]
->>>>>>> e3132a7 (.)
+        [DisplayName("Category Name")]
         public string Name { get; set; } = string.Empty;
 
-        [Column(TypeName = "tinyint")]
-        public byte DisplayOrder { get; set; }
+        [Range(1, 100)]
+        [DisplayName("Display Order")]
+        public int DisplayOrder { get; set; }
     }
 }

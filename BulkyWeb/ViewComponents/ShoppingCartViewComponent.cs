@@ -1,5 +1,4 @@
 ﻿using Bulky.DataAccess.Repository.IRepository;
-using Bulky.Models;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -25,8 +24,7 @@ namespace BulkyWeb.ViewComponents
             }
             else
             {
-                var QuatityOfItensInCart = _unitOfWork.ShopCartRepo.Get(c => c.ApplicationUserId == userId, 
-                    includeProperties: nameof(ShopCart.ShopCartItems))?.ShopCartItems.Count;
+                var QuatityOfItensInCart = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == userId)?.Count();
                 if (QuatityOfItensInCart == null)
                     HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, 0);
                 else

@@ -1,12 +1,10 @@
-﻿@model CategoryVM
+﻿@model Category 
 
 <div class="card shadow mt-4">
     <div class="card-header bg-primary text-light py-3 rounded-top-2">
         <div class="row">
             <div class="col-12 text-center">
-                <h2>
-                    @(Model.Id.GetValueOrDefault() == 0 ? "Create" : "Update") Category
-                </h2>
+                <h2>Create Category</h2>
             </div>
         </div>
     </div>
@@ -25,9 +23,7 @@
                 </div>
                 <div class="row">
                     <div class="col-6 col-md-3">
-                        <button type="submit" class="btn btn-outline-success form-control">
-                            @(Model.Id.GetValueOrDefault() == 0 ? "Create" : "Update")
-                        </button>
+                        <button type="submit" class="btn btn-outline-success form-control">Create</button>
                     </div>
                     <div class="col-6 col-md-3">
                         <a asp-controller="Category" asp-action="Index" class="btn btn-outline-info form-control">Back to list</a>

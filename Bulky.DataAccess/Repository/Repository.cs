@@ -23,7 +23,7 @@ namespace Bulky.DataAccess.Repository
 
         public T? Get(Expression<Func<T, bool>> filter, string? includeProperties = null)
         {
-            IQueryable<T> query = _dbSet;
+            IQueryable<T> query = _dbSet.AsNoTracking();
             query = query.Where(filter);
 
             if (!string.IsNullOrEmpty(includeProperties))
@@ -33,21 +33,6 @@ namespace Bulky.DataAccess.Repository
                 {
                     query = query.Include(prop);
                 }
-            }
-
-            return query.FirstOrDefault();
-        }
-
-        public T? GetFunc(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IQueryable<T>>? include = null)
-        {
-            IQueryable<T> query = _dbSet;
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-            if (include != null)
-            {
-                query = include(query);
             }
 
             return query.FirstOrDefault();
@@ -68,21 +53,6 @@ namespace Bulky.DataAccess.Repository
                     query = query.Include(includeProp);
                 }
             }
-            return query.ToList();
-        }
-
-        public IEnumerable<T> GetAllFunc(Expression<Func<T, bool>>? filter = null, Func<IQueryable<T>, IQueryable<T>>? include = null)
-        {
-            IQueryable<T> query = _dbSet;
-            if (filter != null)
-            {
-                query = query.Where(filter);
-            }
-            if (include != null)
-            {
-                query = include(query);
-            }
-
             return query.ToList();
         }
 

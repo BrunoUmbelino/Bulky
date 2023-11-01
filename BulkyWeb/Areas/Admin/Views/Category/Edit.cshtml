@@ -4,7 +4,7 @@
     <div class="card-header bg-primary text-light ml-0 py-3 rounded-top-2">
         <div class="row">
             <div class="col-12 text-center">
-                <h2>Delete Category</h2>
+                <h2>Edit Category</h2>
             </div>
         </div>
     </div>
@@ -14,23 +14,25 @@
             <div class="p-3">
                 <div class="row p-1 mb-3">
                     <label asp-for="Name" class="p-0">Category Name</label>
-                    <input asp-for="Name" type="text" class="form-control shadow" disabled />
+                    <input asp-for="Name" type="text" class="form-control shadow" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
                 <div class="row p-1 mb-3">
                     <label asp-for="DisplayOrder" class="p-0">Display Order</label>
-                    <input asp-for="DisplayOrder" type="number" class="form-control shadow" disabled />
+                    <input asp-for="DisplayOrder" type="number" class="form-control shadow" />
+                    <span asp-validation-for="DisplayOrder" class="text-danger"></span>
                 </div>
                 <div class="row">
                     <div class="col-6 col-md-3">
                         <button type="submit"
-                                class="btn btn-outline-danger form-control">
-                            Delete
+                                class="btn btn-outline-warning form-control">
+                            Update
                         </button>
                     </div>
                     <div class="col-6 col-md-3">
                         <a asp-controller="Category"
                            asp-action="Index"
-                           class="btn btn-outline-info form-control">
+                           class="btn btn-outline-secondary form-control">
                             Back to list
                         </a>
                     </div>
@@ -39,3 +41,9 @@
         </form>
     </div>
 </div>
+
+@section Scripts{
+    @{
+        <partial name="_ValidationScriptsPartial" />
+    }
+}

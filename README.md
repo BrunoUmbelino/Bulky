@@ -9,7 +9,7 @@ Este projeto tem o proposito de aprendizado e foi desenvolvido junto a realizaç
 * ASP.NET Core MVC (.NET 8 em Dev .NET 7 em Prod)
 * C# 
 * Sql Server + Entity Framework Core
-* Razor Pages + JavaScript/Jquery com DataTables e Toastr
+* Razor Pages + JavaScript, Jquery, DataTables e Toastr
 * Identity Framework
 
 ### TODO

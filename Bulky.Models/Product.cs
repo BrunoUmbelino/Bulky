@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Bulky.Models
@@ -10,34 +9,42 @@ namespace Bulky.Models
         public int Id { get; set; }
         
         [Required]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
-        
+
+        [MaxLength]
         public string Description { get; set; } = string.Empty;
         
-        [Required] [Display(Name = "ISBN-10")]
+        [Required]
+        [MaxLength(20)]
         public string ISBN13 { get; set; } = string.Empty;
         
-        [Required] 
+        [Required]
+        [MaxLength(50)]
         public string Author { get; set; } = string.Empty;
 
-        [Required] [Display(Name = "List Price")] [Range(1, 1000)]
-        public double ListPrice { get; set; }
+        [Required]
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal PriceList { get; set; }
 
-        [Required] [Display(Name = "Price between 1-50 units")] [Range(1, 1000)]
-        public double PriceUp50 { get; set; }
+        [Required]
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal PriceStandart { get; set; }
 
-        [Required] [Display(Name = "Price between 51-100 units")] [Range(1, 1000)]
-        public double PriceUp100 { get; set; }
+        [Required]
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal Price50More { get; set; }
 
-        [Required] [Display(Name = "Price above 100 units")] [Range(1, 1000)]
-        public double PriceAbove100 { get; set; }
+        [Required]
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal Price100More { get; set; }
 
         public int CategoryId { get; set; }
 
-        [ValidateNever] [ForeignKey(nameof(CategoryId))]
-        public Category? Category { get; set; }
-
-        [ValidateNever]
         public List<ProductImage> Images { get; set; } = new();
+
+
+        [ForeignKey(nameof(CategoryId))]
+        public virtual Category? Category { get; set; }
     }
 }

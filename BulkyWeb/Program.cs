@@ -12,13 +12,13 @@ using Stripe;
 var builder = WebApplication.CreateBuilder(args);
 DotNetEnv.Env.Load();
 
+
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
     builder.Configuration.GetConnectionString("AppConnection")
     ?? throw new Exception(message: "ConnectionString was not loaded")));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 
-builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
@@ -31,6 +31,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 builder.Services.AddScoped<IEmailSender, FakeEmailSender>();
 
+
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -39,8 +40,12 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
+
+builder.Services.AddAutoMapper(typeof(Program));
+
+
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
+
 
 string facebookAppSecret =
     Environment.GetEnvironmentVariable("FACEBOOK_APP_SECRET")
@@ -53,11 +58,17 @@ builder.Services.AddAuthentication().AddFacebook(options =>
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
 
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File(@$"app-logs\{DateTime.Now:dd-MM/HH-mm--ss}.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 builder.Logging.AddSerilog();
+
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
 
 var app = builder.Build();
 

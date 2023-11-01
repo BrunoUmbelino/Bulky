@@ -369,3 +369,6 @@ app-logs/
 TODO.txt
 
 *.env
+
+images/products/**
+/BulkyWeb/wwwroot/images/products

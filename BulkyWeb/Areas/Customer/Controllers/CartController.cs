@@ -1,11 +1,11 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
-using Bulky.Models;
+﻿using AutoMapper;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models.ViewModels;
-using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Stripe.Checkout;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Stripe.Checkout;
 
 namespace BulkyWeb.Areas.Customer.Controllers
 {
@@ -15,226 +15,260 @@ namespace BulkyWeb.Areas.Customer.Controllers
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CartController> _logger;
+        private readonly IMapper _mapper;
+        private string? _userId => (User.Identity as ClaimsIdentity)?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         [BindProperty]
-        public ShoppingCartVM ShoppingCartVM { get; set; } = null!;
+        public ShopCartVM ShoppingCartVM { get; set; } = null!;
 
-        public CartController(IUnitOfWork unitOfWork, ILogger<CartController> logger)
+        public CartController(IUnitOfWork unitOfWork, ILogger<CartController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _mapper = mapper;
         }
 
         #region ACTIONS
 
-
         public IActionResult Index()
         {
-            string? userId = (User.Identity as ClaimsIdentity)?
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (_userId == null) throw new Exception("User not found");
 
-            ShoppingCartVM shopCartVM = new()
-            {
-                ShoppingCartItems = _unitOfWork.ShoppingCartRepo.GetAll(
-                    filter: sc => sc.ApplicationUserId == userId,
-                    includeProperties: $"{nameof(ShoppingCartItem.Product)}"),
-                OrderHeader = new()
-            };
+            var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                filter: s => s.ApplicationUserId == _userId,
+                include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+            if (shopCart == null)
+                return View(new ShopCartVM());
 
             var productImages = _unitOfWork.ProductImageRepo.GetAll();
-            foreach (var cart in shopCartVM.ShoppingCartItems)
+            foreach (var item in shopCart.ShopCartItems)
             {
-                if (cart.Product != null) 
-                    cart.Product.Images = productImages.Where(i => i.ProductId == cart.ProductId).ToList();
-                cart.Price = GetPriceBasedOnQuantity(cart);
-                shopCartVM.OrderHeader.OrderTotal += (cart.Price * cart.Count);
+                var image = productImages.Where(p => p.ProductId == item.ProductId).FirstOrDefault();
+                if (image != null) item.Product.Images.Add(image);
             }
 
-            return View(shopCartVM);
+            return View(_mapper.Map<ShopCartVM>(shopCart));
         }
 
         public IActionResult PlusCartItem(int cartItemId)
         {
-            if (cartItemId == 0) return NotFound();
-            var cartItemDB = _unitOfWork.ShoppingCartRepo.Get(sc => sc.Id == cartItemId, includeProperties: $"{nameof(ShoppingCartItem.Product)}");
-            if (cartItemDB == null) return NotFound();
+            try
+            {
+                if (cartItemId == 0)
+                    return ResourceNotFound();
 
-            cartItemDB.Count += 1;
-            cartItemDB.Price = GetPriceBasedOnQuantity(cartItemDB);
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null)
+                    return ResourceNotFound();
 
-            _unitOfWork.ShoppingCartRepo.Update(cartItemDB);
-            _unitOfWork.Save();
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null)
+                    return ResourceNotFound();
 
-            return RedirectToAction(nameof(Index));
+                shopItem.Quantity += 1;
+                shopItem.SetUnitPrice(shopItem.Product);
+                shopItem.CalculateTotalPrice();
+                shopItem.UpdatedOn = DateTime.Now;
+
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
+
+                _unitOfWork.ShopCartRepo.Update(shopCart);
+                _unitOfWork.Save();
+
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro no processo de adicionar uma quantidade de item ao carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         public IActionResult MinusCartItem(int cartItemId)
         {
-            if (cartItemId == 0) return NotFound();
-            var cartItemDB = _unitOfWork.ShoppingCartRepo.Get(sc => sc.Id == cartItemId, $"{nameof(ShoppingCartItem.Product)}");
-            if (cartItemDB == null) return NotFound();
-
-            cartItemDB.Count -= 1;
-            if (cartItemDB.Count <= 0)
+            try
             {
-                _unitOfWork.ShoppingCartRepo.Delete(cartItemDB);
+                if (cartItemId == 0) return ResourceNotFound();
+
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null) return ResourceNotFound();
+
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null) return ResourceNotFound();
+
+                if (shopItem.Quantity <= 1) RedirectToAction(nameof(Index));
+
+                shopItem.Quantity -= 1;
+                shopItem.SetUnitPrice(shopItem.Product);
+                shopItem.CalculateTotalPrice();
+                shopItem.UpdatedOn = DateTime.Now;
+
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
+
+                _unitOfWork.ShopCartRepo.Update(shopCart);
                 _unitOfWork.Save();
 
-                var cartItemsQuantity = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
-                if (cartItemsQuantity is not null)
-                    HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
             }
-            else
+            catch (Exception ex)
             {
-                cartItemDB.Price = GetPriceBasedOnQuantity(cartItemDB);
-                _unitOfWork.ShoppingCartRepo.Update(cartItemDB);
-                _unitOfWork.Save();
+                _logger.LogError(0, ex, "Erro no processo de remover uma quantidade de item ao carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
             }
-
-            return RedirectToAction(nameof(Index));
         }
 
         public IActionResult RemoveCartItem(int cartItemId)
         {
-            if (cartItemId == 0) return NotFound();
-            var cartItemDB = _unitOfWork.ShoppingCartRepo.Get(sc => sc.Id == cartItemId, $"{nameof(ShoppingCartItem.Product)}");
-            if (cartItemDB == null) return NotFound();
+            try
+            {
+                if (cartItemId == 0) return ResourceNotFound();
 
-            _unitOfWork.ShoppingCartRepo.Delete(cartItemDB);
-            _unitOfWork.Save();
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null) return ResourceNotFound();
 
-            var cartItemsQuantity = _unitOfWork.ShoppingCartRepo.GetAll(s => s.ApplicationUserId == cartItemDB.ApplicationUserId)?.Count();
-            if (cartItemsQuantity is not null)
-                HttpContext.Session.SetInt32(CONST_Session.ShoppingCart, (int)cartItemsQuantity);
+                var shopItem = shopCart.ShopCartItems.Where(s => s.Id == cartItemId).FirstOrDefault();
+                if (shopItem == null) return ResourceNotFound();
 
-            return RedirectToAction(nameof(Index));
+                shopCart.ShopCartItems.Remove(shopItem);
+                shopCart.CalculateTotalValue();
+                shopCart.UpdatedOn = DateTime.Now;
+
+                _unitOfWork.ShopCartRepo.Update(shopCart);
+                _unitOfWork.Save();
+
+                TempData["successMessage"] = "Cart updated sucessfully";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Erro no processo de remover item do carrinho.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         public IActionResult Summary()
         {
-            string? userId = (User.Identity as ClaimsIdentity)?
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return NotFound();
+            var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                filter: s => s.ApplicationUserId == _userId,
+                include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+            if (shopCart == null) return ResourceNotFound();
 
-            var userFromDb = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
-            if (userFromDb == null) return NotFound();
-
-            ShoppingCartVM shopCartVM = new()
-            {
-                ShoppingCartItems = _unitOfWork.ShoppingCartRepo
-                    .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShoppingCartItem.Product)}"),
-                OrderHeader = new()
-                {
-                    ApplicationUser = userFromDb,
-                    PhoneNumber = userFromDb.PhoneNumber ?? string.Empty,
-                    StreetAddress = userFromDb.StreetAddress ?? string.Empty,
-                    City = userFromDb.City ?? string.Empty,
-                    State = userFromDb.State ?? string.Empty,
-                    PostalCode = userFromDb.PostalCode ?? string.Empty,
-                    Name = userFromDb.Name ?? string.Empty,
-                }
-            };
-            shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
-
+            ShopCartVM shopCartVM = _mapper.Map<ShopCartVM>(shopCart);
+            shopCartVM.Delivery.CalculateDeliveryForecast();
             return View(shopCartVM);
         }
 
         [HttpPost]
         [ActionName("Summary")]
-        public IActionResult SummaryPost(ShoppingCartVM shopCartVM)
+        public IActionResult SummaryPost(ShopCartVM shopCartVM)
         {
             try
             {
-                string? userId = (User.Identity as ClaimsIdentity)?
-                    .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (userId == null) return NotFound();
+                var shopCart = _unitOfWork.ShopCartRepo.GetFunc(
+                    filter: s => s.ApplicationUserId == _userId,
+                    include: query => query.Include(i => i.ShopCartItems).ThenInclude(t => t.Product));
+                if (shopCart == null || _userId == null)
+                    return ResourceNotFound();
 
-                shopCartVM.ShoppingCartItems = _unitOfWork.ShoppingCartRepo
-                    .GetAll(filter: sc => sc.ApplicationUserId == userId, $"{nameof(ShoppingCartItem.Product)}");
-                shopCartVM.OrderHeader.ApplicationUserId = userId;
-                shopCartVM.OrderHeader.OrderDate = DateTime.Now;
-                shopCartVM.OrderHeader.OrderTotal = CalculateOrderTotal(shopCartVM);
+                var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == _userId);
+                if (applicationUser is null) return ResourceNotFound();
 
-                var applicationUser = _unitOfWork.ApplicationUserRepo.Get(u => u.Id == userId);
-                if (applicationUser is null) return NotFound();
-
-                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
-                bool isCustomerAccout = !isCompanyAccout;
-                if (isCustomerAccout)
+                Order order = new()
                 {
-                    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.Pending;
-                    shopCartVM.OrderHeader.OrderStatus = CONST_OrderStatus.Pending;
-                }
-                if (isCompanyAccout)
-                {
-                    shopCartVM.OrderHeader.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
-                    shopCartVM.OrderHeader.OrderStatus = CONST_PaymentStatus.Approved;
-                }
-                _unitOfWork.OrderHeaderRepo.Add(shopCartVM.OrderHeader);
+                    ApplicationUserId = _userId,
+                    Delivery = shopCartVM.Delivery,
+                    Payment = new Payment() { },
+                    PurchaseItems = shopCart.ShopCartItems.Select(s => _mapper.Map<PurchaseItem>(s)).ToList(),
+                    AddedIn = DateTime.Now,
+                    TotalValue = shopCart.TotalValue
+                };
+                foreach (var item in order.PurchaseItems)
+                    item.OrderId = order.Id;
+                order.Delivery.OrderId = order.Id;
+                order.Payment.OrderId = order.Id;
+
+                _unitOfWork.OrderRepo.Add(order);
                 _unitOfWork.Save();
 
-                foreach (var item in shopCartVM.ShoppingCartItems)
+                _unitOfWork.ShopCartRepo.Delete(shopCart);
+                _unitOfWork.Save();
+
+                bool isCompanyAccout = applicationUser.CompanyId.GetValueOrDefault() != 0;
+                if (isCompanyAccout)
                 {
-                    OrderDetail orderDetail = new()
-                    {
-                        ProductId = item.ProductId,
-                        OrderHeaderId = shopCartVM.OrderHeader.Id,
-                        Price = item.Price,
-                        Count = item.Count,
-                    };
-                    _unitOfWork.OrderDetailRepo.Add(orderDetail);
+                    order.Status = CONST_OrderStatus.Approved;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.DelayedPayment;
+
+                    _unitOfWork.OrderRepo.Update(order);
                     _unitOfWork.Save();
                 }
-
-                if (isCustomerAccout)
+                else
                 {
-                    var session = PaymentForStripe(shopCartVM);
-                    Response.Headers.Location = session.Url;
+                    order.Status = CONST_OrderStatus.Pending;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.Pending;
+
+                    var stripeSession = StripePayment(order);
+                    order.Payment.SessionId = stripeSession.Id;
+
+                    _unitOfWork.OrderRepo.Update(order);
+                    _unitOfWork.Save();
+
+                    Response.Headers.Location = stripeSession.Url;
                     return new StatusCodeResult(303);
                 }
 
-                return RedirectToAction(nameof(OrderConfirmation), new { id = shopCartVM.OrderHeader.Id });
+                return RedirectToAction(nameof(OrderConfirmation), new { id = order.Id });
             }
             catch (Exception ex)
             {
                 _logger.LogError(0, ex, "Erro na criação de Ordem.");
-                TempData["errorMessage"] = $"{ex.Message}";
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
                 return RedirectToAction(nameof(Index));
             }
         }
 
+
         public IActionResult OrderConfirmation(int id)
         {
-            OrderHeader orderHeader = _unitOfWork.OrderHeaderRepo.Get(o => o.Id == id);
-            if (orderHeader == null) return NotFound();
-
-            var isOrderByCompany = orderHeader.PaymentStatus == CONST_PaymentStatus.DelayedPayment;
-            if (isOrderByCompany)
+            try
             {
-                var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepo
-                    .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-                _unitOfWork.ShoppingCartRepo.DeleteRange(shoppingCartsForRemove);
-                _unitOfWork.Save();
+                var order = _unitOfWork.OrderRepo.GetFunc(
+                    filter: o => o.Id == id,
+                    include: query => query.Include(o => o.Payment))
+                ?? throw new Exception("Order not found");
+
+                var stripeSession = new SessionService().Get(order.Payment.SessionId);
+                if (stripeSession.PaymentStatus.ToLower() == "paid")
+                {
+                    order.Payment.PaymentIntentId = stripeSession.PaymentIntentId;
+                    order.Payment.PaymentDate = DateTime.Now;
+                    order.Payment.PaymentStatus = CONST_PaymentStatus.Approved;
+                    order.Status = CONST_OrderStatus.Approved;
+                    order.UpdatedOn = DateTime.Now;
+                    _unitOfWork.OrderRepo.Update(order);
+                }
 
                 return View(id);
             }
-
-            var stripeService = new SessionService();
-            Session stripeSession = stripeService.Get(orderHeader.SessionId);
-
-            if (stripeSession.PaymentStatus.ToLower() == "paid")
+            catch (Exception ex)
             {
-                _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(id, stripeSession.Id, stripeSession.PaymentIntentId);
-                _unitOfWork.OrderHeaderRepo.UpdateOrderPaymentStatus(id, CONST_OrderStatus.Approved, CONST_PaymentStatus.Approved);
-                _unitOfWork.Save();
-
-                var shoppingCartsForRemove = _unitOfWork.ShoppingCartRepo
-                    .GetAll(s => s.ApplicationUserId == orderHeader.ApplicationUserId).ToList();
-                _unitOfWork.ShoppingCartRepo.DeleteRange(shoppingCartsForRemove);
-                _unitOfWork.Save();
+                _logger.LogError(0, ex, "Erro na Confirmação de Ordem.");
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                return RedirectToAction(nameof(Index));
             }
-
-            return View(id);
         }
 
 
@@ -244,62 +278,45 @@ namespace BulkyWeb.Areas.Customer.Controllers
         #region PRIVATE METHODS
 
 
-        private static double CalculateOrderTotal(ShoppingCartVM shopCartVM)
+        IActionResult ResourceNotFound()
         {
-            foreach (var cart in shopCartVM.ShoppingCartItems)
-            {
-                cart.Price = GetPriceBasedOnQuantity(cart);
-                shopCartVM.OrderHeader.OrderTotal += (cart.Price * cart.Count);
-            }
-
-            return shopCartVM.OrderHeader.OrderTotal;
+            TempData["errorMessage"] = "Resource not found";
+            return RedirectToAction(nameof(Index));
         }
 
-        private static double GetPriceBasedOnQuantity(ShoppingCartItem shoppingCartItem)
-        {
-            if (shoppingCartItem.Product is null) throw new ArgumentException("Invalid Product");
-
-            if (shoppingCartItem.Count <= 50) return shoppingCartItem.Product.PriceUp50;
-            else if (shoppingCartItem.Count <= 100) return shoppingCartItem.Product.PriceUp100;
-            else if (shoppingCartItem.Count > 100) return shoppingCartItem.Product.PriceAbove100;
-            else return 0;
-        }
-
-        private Session PaymentForStripe(ShoppingCartVM shopCartVM)
+        private Session StripePayment(Order order)
         {
             var host = $"{Request.Scheme}://{Request.Host.Value}";
             var options = new SessionCreateOptions
             {
-                SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={shopCartVM.OrderHeader.Id}",
+                SuccessUrl = $"{host}/Customer/Cart/OrderConfirmation?id={order.Id}",
                 CancelUrl = $"{host}/Customer/Cart/Index",
                 LineItems = new List<SessionLineItemOptions>(),
                 Mode = "payment",
             };
 
-            var sessionLineItems = shopCartVM.ShoppingCartItems
+            var sessionLineItems = order.PurchaseItems
                 .Select(item => new SessionLineItemOptions
                 {
                     PriceData = new SessionLineItemPriceDataOptions
                     {
-                        UnitAmount = (long)(item.Price * 100),
+                        UnitAmount = (long)(item.UnitPrice * 100),
                         Currency = "brl",
-                        ProductData = new SessionLineItemPriceDataProductDataOptions { Name = item.Product?.Title }
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = item.Product?.Title
+                        }
                     },
-                    Quantity = item.Count
-                }).ToList();
+                    Quantity = item.Quantity
+                })
+                .ToList();
             options.LineItems.AddRange(sessionLineItems);
 
-            var service = new SessionService();
-            Session session = service.Create(options);
-            _unitOfWork.OrderHeaderRepo.UpdateStripePaymentId(
-                shopCartVM.OrderHeader.Id, session.Id, session.PaymentIntentId);
-            _unitOfWork.Save();
-            return session;
+            Session paymentSession = new SessionService().Create(options);
+            return paymentSession;
         }
 
 
         #endregion
     }
-
-
 }

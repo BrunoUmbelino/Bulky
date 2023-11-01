@@ -1,5 +1,7 @@
-﻿using Bulky.DataAccess.Repository.IRepository;
+﻿using AutoMapper;
+using Bulky.DataAccess.Repository.IRepository;
 using Bulky.Models;
+using Bulky.Models.ViewModels;
 using Bulky.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,79 +12,116 @@ namespace BulkyWeb.Areas.Admin.Controllers
     [Authorize(Roles = CONST_Roles.Admin)]
     public class CategoryController : Controller
     {
+        private readonly ILogger<CategoryController> _logger;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CategoryController(IUnitOfWork unitOfWork)
+        public CategoryController(IUnitOfWork unitOfWork, ILogger<CategoryController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _logger = logger;
+            _mapper = mapper;
         }
 
         public IActionResult Index()
         {
-            var categories = _unitOfWork.CategoryRepo.GetAll();
-            return View(categories);
+            var categoriesVM = _unitOfWork.CategoryRepo.GetAll().Select(c => _mapper.Map<CategoryVM>(c));
+            return View(categoriesVM);
         }
 
-        public IActionResult Create()
+        public IActionResult Upsert(int? id)
         {
-            return View();
-        }
+            CategoryVM categoryVM = new();
+            if (id.GetValueOrDefault() == 0)
+                return View(categoryVM);
 
-        [HttpPost]
-        public IActionResult Create(Category newCategory)
-        {
-            if (!ModelState.IsValid) return View();
-
-            _unitOfWork.CategoryRepo.Add(newCategory);
-            _unitOfWork.Save();
-            TempData["successMessage"] = $"Category {newCategory.Name} created successfuly";
-
-            return RedirectToAction("Index");
-        }
-
-        public IActionResult Edit(int? id)
-        {
-            if (id == null || id == 0) return NotFound();
-
-            var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
-            if (category == null) return NotFound();
-
-            return View(category);
+            categoryVM = _mapper.Map<CategoryVM>(_unitOfWork.CategoryRepo.Get(c => c.Id == id));
+            if (categoryVM == null)
+            {
+                TempData["errorMessage"] = $"Resource not found.";
+                return RedirectToAction(nameof(Index));
+            }
+            return View(categoryVM);
         }
 
         [HttpPost]
-        public IActionResult Edit(Category category)
+        public IActionResult Upsert(CategoryVM categoryVM)
         {
-            if (!ModelState.IsValid) return View();
+            try
+            {
+                if (!ModelState.IsValid) return View();
 
-            _unitOfWork.CategoryRepo.Update(category);
-            _unitOfWork.Save();
-            TempData["successMessage"] = $"Category {category.Name} updated successfuly";
+                string actionMessage;
+                var category = _mapper.Map<Category>(categoryVM);
+                if (category.Id == 0)
+                {
+                    _unitOfWork.CategoryRepo.Add(category);
+                    actionMessage = "created";
+                }
+                else
+                {
+                    _unitOfWork.CategoryRepo.Update(category);
+                    actionMessage = "updated";
+                }
+                _unitOfWork.Save();
 
-            return RedirectToAction("Index");
+                TempData["successMessage"] = $"Category {category.Name} {actionMessage} successfuly";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                _logger.LogError(0, ex, "Erro no processo de UPSERT do Produto.");
+                return RedirectToAction(nameof(Index));
+            }
         }
 
-        public IActionResult Delete(int? id)
+        public IActionResult Delete(int id)
         {
-            if (id == null || id == 0) return NotFound();
-
+            if (id == 0)
+            {
+                TempData["errorMessage"] = $"Resource not found.";
+                return RedirectToAction(nameof(Index));
+            }
             var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
-            if (category == null) return NotFound();
+            if (category == null)
+            {
+                TempData["errorMessage"] = $"Resource not found.";
+                return RedirectToAction(nameof(Index));
+            }
 
-            return View(category);
+            return View(_mapper.Map<CategoryVM>(category));
         }
 
         [HttpPost, ActionName("Delete")]
         public IActionResult DeletePost(int id)
         {
-            var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
-            if (category == null) return NotFound();
+            try
+            {
+                if (id == 0)
+                {
+                    TempData["errorMessage"] = $"Resource not found.";
+                    return RedirectToAction("Index");
+                }
+                var category = _unitOfWork.CategoryRepo.Get(c => c.Id == id);
+                if (category == null)
+                {
+                    TempData["errorMessage"] = $"Resource not found.";
+                    return RedirectToAction("Index");
+                }
 
-            _unitOfWork.CategoryRepo.Delete(category);
-            _unitOfWork.Save();
-            TempData["successMessage"] = $"Category {category.Name} deleted successfuly";
+                _unitOfWork.CategoryRepo.Delete(category);
+                _unitOfWork.Save();
 
-            return RedirectToAction("Index");
+                TempData["successMessage"] = $"Category {category.Name} deleted successfuly";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["errorMessage"] = $"Something went wrong but don't be sad, it wasn't you fault.";
+                _logger.LogError(0, ex, "Erro no processo de Edit em Category.");
+                return RedirectToAction(nameof(Index));
+            }
         }
     }
 }

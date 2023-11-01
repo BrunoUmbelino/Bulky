@@ -1,4 +1,4 @@
-﻿@model List<Category>
+﻿@model IEnumerable<CategoryVM>
 
 <div class="card shadow border-0 mt-4">
     <div class="card-header bg-primary text-light ml-0 py-3 rounded-top-2">
@@ -12,7 +12,7 @@
         <div class="container">
             <div class="row pt-4 pb-3">
                 <div class="col-12 text-end">
-                    <a class="btn btn-outline-success" asp-controller="Category" asp-action="Create">
+                    <a class="btn btn-outline-success" asp-controller="Category" asp-action="Upsert">
                         <i class="bi bi-plus-circle"></i> New Category
                     </a>
                 </div>
@@ -32,10 +32,10 @@
                     <tr>
                         <td>@category.Name</td>
                         <td>@category.DisplayOrder</td>
-                        <td>
+                        <td class="text-center">
                             <div class="btn-group" role="group">
                                 <a asp-controller="Category"
-                                   asp-action="Edit"
+                                   asp-action="Upsert"
                                    asp-route-id="@category.Id"
                                    class="btn btn-outline-warning mx-2">
                                     <i class="bi bi-pencil-square"></i> Edit

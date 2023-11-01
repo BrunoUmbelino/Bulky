@@ -5,79 +5,85 @@
         <div class="row">
             <div class="col-12 text-center">
                 <h2>
-                    @(Model.Product.Id == 0 ? "Create New Product" : "Update Product")
+                    @(Model.Id.GetValueOrDefault() == 0 ? "Create New Product" : "Update Product")
                 </h2>
             </div>
         </div>
     </div>
     <div class="card-body px-4">
         <form method="post" enctype="multipart/form-data">
-            <input asp-for="Product.Id" hidden />
+            <input asp-for="Id" hidden />
             <div class="p-3">
                 <div class="row">
                     <div class="col-md-9 col-sm-12">
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.Title" class="p-0"></label>
-                            <input asp-for="Product.Title" type="text" class="form-control shadow" />
-                            <span asp-validation-for="Product.Title" class="text-danger"></span>
+                            <label asp-for="Title" class="p-0"></label>
+                            <input asp-for="Title" type="text" class="form-control shadow" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.Description" class="p-0"></label>
-                            <textarea asp-for="Product.Description" type="text" class="form-control shadow"></textarea>
-                            <span asp-validation-for="Product.Description" class="text-danger"></span>
+                            <label asp-for="Description" class="p-0"></label>
+                            <textarea asp-for="Description" type="text" class="form-control shadow"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.ISBN13" class="p-0"></label>
-                            <input asp-for="Product.ISBN13" type="text" class="form-control shadow" />
-                            <span asp-validation-for="Product.ISBN13" class="text-danger"></span>
+                            <label asp-for="ISBN13" class="p-0"></label>
+                            <input asp-for="ISBN13" type="text" class="form-control shadow" />
+                            <span asp-validation-for="ISBN13" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.Author" class="p-0"></label>
-                            <input asp-for="Product.Author" type="text" class="form-control shadow" />
-                            <span asp-validation-for="Product.Author" class="text-danger"></span>
+                            <label asp-for="Author" class="p-0"></label>
+                            <input asp-for="Author" type="text" class="form-control shadow" />
+                            <span asp-validation-for="Author" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.ListPrice" class="p-0"></label>
-                            <input asp-for="Product.ListPrice" type="number" class="form-control shadow" />
-                            <span asp-validation-for="Product.ListPrice" class="text-danger"></span>
+                            <label asp-for="PriceList" class="p-0"></label>
+                            <input asp-for="PriceList" type="number" class="form-control shadow" />
+                            <span asp-validation-for="PriceList" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.PriceUp50" class="p-0"></label>
-                            <input asp-for="Product.PriceUp50" type="number" class="form-control shadow" />
-                            <span asp-validation-for="Product.PriceUp50" class="text-danger"></span>
+                            <label asp-for="PriceStandart" class="p-0"></label>
+                            <input asp-for="PriceStandart" type="number" class="form-control shadow" />
+                            <span asp-validation-for="PriceStandart" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.PriceUp100" class="p-0"></label>
-                            <input asp-for="Product.PriceUp100" type="number" class="form-control shadow" />
-                            <span asp-validation-for="Product.PriceUp100" class="text-danger"></span>
+                            <label asp-for="Price50More" class="p-0"></label>
+                            <input asp-for="Price50More" type="number" class="form-control shadow" />
+                            <span asp-validation-for="Price50More" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.PriceAbove100" class="p-0"></label>
-                            <input asp-for="Product.PriceAbove100" type="number" class="form-control shadow" />
-                            <span asp-validation-for="Product.PriceAbove100" class="text-danger"></span>
+<<<<<<< HEAD
+                            <label asp-for="Price100More" class="p-0"></label>
+                            <input asp-for="Price100More" type="number" class="form-control shadow" />
+                            <span asp-validation-for="Price100More" class="text-danger"></span>
+=======
+                            <label asp-for="PriceOver100" class="p-0"></label>
+                            <input asp-for="PriceOver100" type="number" class="form-control shadow" />
+                            <span asp-validation-for="PriceOver100" class="text-danger"></span>
+>>>>>>> e3132a7 (.)
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.Category" class="p-0"></label>
-                            <select asp-for="Product.CategoryId" asp-items="@Model.CategoryList"
+                            <label asp-for="Category" class="p-0"></label>
+                            <select asp-for="CategoryId" asp-items="@Model.CategoryList"
                                     class="form-select shadow">
                                 <option disabled selected>--Select Category--</option>
                             </select>
-                            <span asp-validation-for="Product.CategoryId" class="text-danger"></span>
+                            <span asp-validation-for="CategoryId" class="text-danger"></span>
                         </div>
                         <div class="row p-1 mb-2">
-                            <label asp-for="Product.Images" class="p-0"></label>
+                            <label asp-for="Images" class="p-0"></label>
                             <input type="file" name="files" class="form-control shadow" multiple />
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-12 pt-4 text-center">
-                        @if (Model.Product.Images.Any())
+                    <div class="col-md-12 col-lg-3 pt-4 text-center">
+                        @if (Model.Images.Any())
                         {
                             <label class="p-0">Images</label>
-                            foreach (var image in Model.Product.Images)
+                            foreach (var image in Model.Images)
                             {
                                 <div class="mb-1 border border-light rounded shadow-sm">
                                     <img src="@image.ImageUrl" class="rounded-top" style="width: 100%" />
-                                    <a asp-action="DeleteImage" asp-route-imageId="@image.Id" class="btn btn-danger w-100 rounded-bottom">
+                                    <a asp-controller="Product" asp-action="DeleteOneImage" asp-route-imageId="@image.Id" class="btn btn-danger w-100 rounded-bottom">
                                         <i class="bi bi-trash-fill"></i>Delete</a>
                                 </div>
                             }
@@ -87,7 +93,7 @@
             </div>
             <div class="row">
                 <div class="col-6 col-md-3">
-                    @if (Model.Product.Id == 0)
+                    @if (Model.Id.GetValueOrDefault() == 0)
                     {
                         <button type="submit" class="btn btn-outline-success form-control">Create</button>
                     }
